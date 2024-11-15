@@ -7,41 +7,84 @@
 
 import Foundation
 import FirebaseAuth
+import Combine
 
-//Manages the navigation and user authentication status
+enum AuthState {
+    case loggedIn
+    case loggedOut
+}
+
 class AuthViewModel: ObservableObject {
-    
-    @Published var currentState: AppFlowState = .login
-    @Published var user: User?
-    
-    func login (email: String, password: String) {
-        Auth.auth().signIn(withEmail: email,password: password){ [weak self] result, error in
-            if let error = error{
-                print("Error signing in: \(error.localizedDescription)")
-                return
+    @Published var user: User? = nil // Firebase user object
+    @Published var authState: AuthState = .loggedOut // Tracks current authentication state
+
+    private var authStateListener: AuthStateDidChangeListenerHandle?
+
+    init() {
+        // Listen for authentication state changes
+        authStateListener = Auth.auth().addStateDidChangeListener { [weak self] _, user in
+            DispatchQueue.main.async {
+                self?.user = user
+                self?.authState = user == nil ? .loggedOut : .loggedIn
             }
-            self?.user = result?.user
-            self?.currentState = .inbox
         }
     }
-    func Register(email: String, password: String) {
-        Auth.auth().signIn(withEmail: email,password: password){ [weak self] result, error in
-            if let error = error{
-                print("Error signing in: \(error.localizedDescription)")
-                return
-            }
-            self?.user = result?.user
-            self?.currentState = .inbox
+
+    deinit {
+        // Remove the auth state listener when this object is deallocated
+        if let listener = authStateListener {
+            Auth.auth().removeStateDidChangeListener(listener)
         }
     }
+
+    // MARK: - Authentication Methods
+
+    /// Sign up with email and password
+    func signUp(email: String, password: String, completion: @escaping (Bool, String?) -> Void) {
+        Auth.auth().createUser(withEmail: email, password: password) { [weak self] result, error in
+            if let error = error {
+                completion(false, error.localizedDescription)
+                return
+            }
+
+            guard let user = result?.user else {
+                completion(false, "Failed to create user.")
+                return
+            }
+
+            self?.user = user
+            self?.authState = .loggedIn
+            completion(true, nil)
+        }
+    }
+
+    /// Log in with email and password
+    func login(email: String, password: String, completion: @escaping (Bool, String?) -> Void) {
+        Auth.auth().signIn(withEmail: email, password: password) { [weak self] result, error in
+            if let error = error {
+                completion(false, error.localizedDescription)
+                return
+            }
+
+            guard let user = result?.user else {
+                completion(false, "Failed to log in.")
+                return
+            }
+
+            self?.user = user
+            self?.authState = .loggedIn
+            completion(true, nil)
+        }
+    }
+
+    /// Log out the current user
     func logout() {
         do {
             try Auth.auth().signOut()
             self.user = nil
-            self.currentState = .login
-        } catch {
-            print("Error signing out: \(error.localizedDescription)")
+            self.authState = .loggedOut
+        } catch let error {
+            print("Failed to log out: \(error.localizedDescription)")
         }
     }
-
 }

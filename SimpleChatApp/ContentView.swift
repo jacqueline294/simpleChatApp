@@ -7,30 +7,29 @@
 
 import SwiftUI
 
+import FirebaseAuth
+
 struct ContentView: View {
-    
-    @StateObject private var ViewModel = AuthViewModel()
-    
+    @StateObject private var viewModel = AuthViewModel()
+    @State private var path: [String] = [] // Holds the navigation stack state
+
     var body: some View {
-        VStack{
-            switch ViewModel.currentState {
-            case.registration:
-                RegistrationView(viewModel: ViewModel)
-            
-            case.login:
-                LoginView(viewModel: ViewModel)
-            
-            case.inbox:
-                InboxView(viewModel: ViewModel)
-            
-            case.profile:
-                ProfileView(viewModel: ViewModel)
-                
+        NavigationStack(path: $path) {
+            if viewModel.user == nil {
+                // If the user is not logged in, show RegistrationView or LoginView
+                RegistrationView(viewModel: viewModel, path: $path)
+            } else {
+                // If the user is logged in, show InboxView
+                InboxView(viewModel: viewModel, path: $path)
             }
-            
+        }
+        .onAppear {
+            // Automatically update the user state when the view appears
+            viewModel.user = Auth.auth().currentUser
         }
     }
 }
+
 
 #Preview {
     ContentView()
