@@ -8,14 +8,27 @@
 import SwiftUI
 
 struct ContentView: View {
+    
+    @StateObject private var ViewModel = AuthViewModel()
+    
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        VStack{
+            switch ViewModel.currentState {
+            case.registration:
+                RegistrationView(viewModel: ViewModel)
+            
+            case.login:
+                LoginView(viewModel: ViewModel)
+            
+            case.inbox:
+                InboxView(viewModel: ViewModel)
+            
+            case.profile:
+                ProfileView(viewModel: ViewModel)
+                
+            }
+            
         }
-        .padding()
     }
 }
 
