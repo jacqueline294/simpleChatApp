@@ -19,20 +19,14 @@ struct InboxView: View {
             
             Image(systemName: "person.circle.fill")
 
-            VStack {
-                Button("Log Out") {
-                    viewModel.logout()
-                    path.removeAll() // Clear the navigation stack on logout
-                }
-                .foregroundColor(.red)
-                .padding()
+            
             }
             
             Spacer()
         }
-        .navigationTitle("Inbox")
+       
     }
-}
+
 
 
 #Preview {

@@ -11,6 +11,7 @@ struct RegistrationView: View {
     @ObservedObject var viewModel: AuthViewModel
     @Binding var path: [String] // To manage navigation
     @State private var email: String = ""
+    @State private var name: String = ""
     @State private var password: String = ""
     @State private var errorMessage: String = ""
 
@@ -25,6 +26,9 @@ struct RegistrationView: View {
                 .bold()
             
             Text("Sign up to chat with friends")
+            
+            TextField("Enter FullName", text: $name)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
             
             TextField("Enter Email", text: $email)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
