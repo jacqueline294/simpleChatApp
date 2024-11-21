@@ -12,6 +12,7 @@ import FirebaseFirestore
 
 struct ProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
+    @State private var isPickerPresented = false
 
     var body: some View {
         NavigationView {
@@ -30,53 +31,26 @@ struct ProfileView: View {
                         .foregroundColor(.gray)
                 }
                 Button("Pick Profile Picture") {
-                    viewModel.showingImagePicker = true
+                    isPickerPresented = true
+                }
+                .sheet(isPresented: $isPickerPresented) {
+                    ImagePicker(selectedImage: $viewModel.profileImage)
                 }
 
-                // User Info
-                Text(viewModel.name)
-                    .font(.headline)
-                Text(viewModel.email)
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-
-                Spacer()
-
-                // Navigation to Inbox
-                NavigationLink(destination: InboxView(), isActive: $viewModel.navigateToInbox) {
-                    Button("Go to Inbox") {
-                        viewModel.navigateToInbox = true
+                if let user = viewModel.user {
+                                    Text("Email: \(user.email ?? "N/A")")
+                                    Button("Log Out") {
+                                viewModel.logOut()
                     }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
+                    .foregroundColor(.red)
                 }
-
-                // Logout Button
-                Button("Log Out") {
-                    viewModel.logOut()
-                }
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(Color.red)
-                .foregroundColor(.white)
-                .cornerRadius(10)
             }
             .padding()
-            .navigationBarTitle("Profile", displayMode: .inline)
             .onAppear {
-                viewModel.loadUserInfo()
-            }
-            .sheet(isPresented: $viewModel.showingImagePicker) {
-                PhotosPicker
+                viewModel.fetchUserProfile()
             }
         }
         
-        .alert(item: $viewModel.alertItem) { alertItem in
-            Alert(title: Text(alertItem.title), message: Text(alertItem.message), dismissButton: .default(Text("OK")))
-        }
     }
 }
 

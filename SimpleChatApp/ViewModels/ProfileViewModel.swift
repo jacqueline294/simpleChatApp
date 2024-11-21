@@ -18,8 +18,10 @@ class ProfileViewModel: ObservableObject {
     @Published var isLoggedOut = false
     @Published var navigateToInbox = false
     @Published var alertItem: AlertItem? = nil
+    
+    var user = Auth.auth().currentUser
 
-    func loadUserInfo() {
+    func fetchUserProfile() {
         guard let user = Auth.auth().currentUser else {
             alertItem = AlertItem(title: "Error", message: "User not logged in.")
             return

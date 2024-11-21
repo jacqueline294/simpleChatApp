@@ -10,13 +10,13 @@ import FirebaseAuth
 import FirebaseFirestore
 
 struct ChatView: View {
-    @StateObject private var viewModel = ChatViewModel() // Initialize the ViewModel
-    var chatId: String // The ID of the chat (e.g., conversation)
+    @StateObject private var viewModel = ChatViewModel()
+    var chatId: String
 
     var body: some View {
         VStack {
             // Header
-            Text("Chat with \(viewModel.messages.first?.senderName ?? "Unknown")")
+            Text("Chat with \(viewModel.messages.first?.senderName ?? "your friend")")
                 .font(.headline)
                 .padding()
 
@@ -53,13 +53,28 @@ struct ChatView: View {
             .padding()
         }
         .onAppear {
-            viewModel.fetchMessages(forChat: chatId) // Fetch messages for the chat
+            Task {
+                await viewModel.fetchMessages(forChat: chatId)
+            }
         }
-        
     }
 }
 
+// Mock data for preview
+extension ChatViewModel {
+    static var mock: ChatViewModel {
+        let viewModel = ChatViewModel()
+        viewModel.messages = [
+            Message(id: "1", content: "Hello!", senderId: "user1", senderName: "Alice", timestamp: Date()),
+            Message(id: "2", content: "Hi there!", senderId: "user2", senderName: "Bob", timestamp: Date())
+        ]
+        return viewModel
+    }
+}
+
+// #Preview directive
 #Preview {
-    ChatView(chatId: "")
+    ChatView(chatId: "mockChat")
+        .environmentObject(ChatViewModel.mock)
 }
 

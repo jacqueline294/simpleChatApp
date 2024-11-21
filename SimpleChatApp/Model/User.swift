@@ -14,4 +14,5 @@ public struct User: Codable, Identifiable, Hashable{
     public  let name : String
     public let email: String
     public let password : String
+    public let profilePictureURL: String? 
 }
