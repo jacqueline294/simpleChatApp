@@ -8,11 +8,18 @@
 import Foundation
 import Firebase
 import FirebaseFirestore
+import FirebaseAuth
 
-public struct User: Codable, Identifiable, Hashable{
-    public  let  id : String
-    public  let name : String
-    public let email: String
-    public let password : String
-    public let profilePictureURL: String? 
+struct User: Identifiable {
+    let id: String
+    let name: String
+    let email: String
+    let profilePictureURL: String?
+    
+    init(firebaseUser: FirebaseAuth.User) {
+        self.id = firebaseUser.uid
+        self.name = firebaseUser.displayName ?? "Unknown"
+        self.email = firebaseUser.email ?? "No Email"
+        self.profilePictureURL = firebaseUser.photoURL?.absoluteString
+    }
 }

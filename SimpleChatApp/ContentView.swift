@@ -12,7 +12,6 @@ struct ContentView: View {
     @StateObject private var viewModel = AuthViewModel()
     @State private var path: [String] = [] // Holds the navigation stack state
     
-
     var body: some View {
         NavigationStack(path: $path) {
             if viewModel.user == nil {
@@ -25,12 +24,11 @@ struct ContentView: View {
                     }
             } else {
                 // If the user is logged in, show InboxView
-                InboxView(viewModel: viewModel, path: $path)
+                InboxView()
             }
         }
         .onAppear {
-            // Automatically update the user state when the view appears
-            viewModel.user = Auth.auth().currentUser
+            viewModel.updateUser() // Update the user state when the view appears
         }
     }
 }
