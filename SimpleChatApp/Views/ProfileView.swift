@@ -7,97 +7,81 @@
 
 
 import SwiftUI
-import FirebaseAuth
-import FirebaseFirestore
-
+import FirebaseStorage
 
 
 struct ProfileView: View {
-    @StateObject private var viewModel = ProfileViewModel() // Use your ProfileViewModel
+    @StateObject private var viewModel = ProfileViewModel()
+    @State private var selectedImage: UIImage? = nil
+    @State private var showingImagePicker: Bool = false
 
     var body: some View {
         VStack {
             if viewModel.isLoggedOut {
-                // Handle navigation to login view
                 Text("Redirecting to Login...")
                     .onAppear {
-                        // Navigation logic to LoginView
-                        print("User is logged out, navigate to login view.")
+                        // Add navigation logic to log out and go back to login view
                     }
-            } else if viewModel.name == "Loading..." && viewModel.email == "Loading..." {
-                // Show loading spinner
-                ProgressView("Loading Profile...")
-                    .padding()
             } else {
-                VStack {
-                    // Profile Picture
-                    if let image = viewModel.profileImage {
+                VStack(spacing: 20) {
+                    //  use the Profile Image that was selected when current user registered
+                    if let image = selectedImage ?? viewModel.profileImage {
                         Image(uiImage: image)
                             .resizable()
-                            .scaledToFill()
-                            .frame(width: 120, height: 120)
+                            .scaledToFit()
+                            .frame(width: 100, height: 100)
                             .clipShape(Circle())
-                            .padding()
+                            .onTapGesture {
+                                showingImagePicker = true
+                            }
                     } else {
-                        Image(systemName: "person.circle.fill")
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 120, height: 120)
-                            .foregroundColor(.gray)
-                            .padding()
+                        Circle()
+                            .fill(Color.gray.opacity(0.3))
+                            .frame(width: 100, height: 100)
+                            .overlay(Text("Edit Image").foregroundColor(.gray))
+                            .onTapGesture {
+                                showingImagePicker = true
+                            }
                     }
 
-                    // Upload Button for Profile Picture
-                    Button(action: {
-                        viewModel.showingImagePicker = true
-                    }) {
-                        Text("Change Profile Picture")
-                            .font(.subheadline)
-                            .foregroundColor(.blue)
-                    }
-                    .padding(.bottom)
-
-                    // User Information
-                    Text(viewModel.name)
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .padding(.top)
-
-                    Text(viewModel.email)
-                        .font(.subheadline)
+                    // Profile Details
+                    Text("Name: \(viewModel.name)")
+                        .font(.headline)
+                    Text("Email: \(viewModel.email)")
                         .foregroundColor(.gray)
-                        .padding(.bottom)
 
-                    Spacer()
-
-                    // Sign Out Button
+                    // to change and update the profile picture if needed
                     Button(action: {
-                        viewModel.logOut()
+                        if let selectedImage = selectedImage {
+                            viewModel.updateProfileImage(selectedImage)
+                        }
                     }) {
-                        Text("Sign Out")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.red)
+                        Text("Save Changes")
                             .foregroundColor(.white)
+                            .padding()
+                            .background(Color.blue)
                             .cornerRadius(8)
                     }
-                    .padding()
+
+                    // Logout Button
+                    Button(action: {
+                        viewModel.logout()
+                    }) {
+                        Text("Logout")
+                            .foregroundColor(.red)
+                    }
                 }
                 .padding()
+                .onAppear {
+                    viewModel.fetchProfile()
+                }
+                .sheet(isPresented: $showingImagePicker) {
+                    ImagePicker(selectedImage: $selectedImage) { image in
+                        selectedImage = image
+                    }
+                }
             }
         }
-        .onAppear {
-            viewModel.fetchUserProfile()
-        }
-        .alert(item: $viewModel.alertItem) { alert in
-            Alert(title: Text(alert.title), message: Text(alert.message), dismissButton: .default(Text("OK")))
-        }
-        .sheet(isPresented: $viewModel.showingImagePicker) {
-            ImagePicker(selectedImage: .constant(nil)) { image in
-                viewModel.uploadProfilePicture(image)
-            }
-        }
-        .navigationTitle("Profile")
     }
 }
 

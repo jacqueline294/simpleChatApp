@@ -17,60 +17,94 @@ class ProfileViewModel: ObservableObject {
     @Published var showingImagePicker = false
     @Published var isLoggedOut = false
     @Published var navigateToInbox = false
-    @Published var alertItem: AlertItem? = nil
-    
-    var user = Auth.auth().currentUser
+    @Published var isLoading: Bool = false // Added loading state
 
-    func fetchUserProfile() {
-        guard let user = Auth.auth().currentUser else {
-            alertItem = AlertItem(title: "Error", message: "User not logged in.")
+    private let db = Firestore.firestore()
+
+    func fetchProfile() {
+        guard let userId = Auth.auth().currentUser?.uid else {
+            print("User not authenticated")
             return
         }
 
-        email = user.email ?? "No email"
-
-        let db = Firestore.firestore()
-        db.collection("users").document(user.uid).getDocument { [weak self] snapshot, error in
-            guard let self = self else { return }
-
+        isLoading = true
+        db.collection("users").document(userId).getDocument { document, error in
+            self.isLoading = false
             if let error = error {
-                self.alertItem = AlertItem(title: "Error", message: error.localizedDescription)
+                print("Error fetching profile: \(error.localizedDescription)")
                 return
             }
 
-            if let data = snapshot?.data() {
-                self.name = data["name"] as? String ?? "No name available"
-            } else {
-                self.alertItem = AlertItem(title: "Error", message: "Failed to fetch user information.")
+            guard let data = document?.data() else { return }
+            self.name = data["name"] as? String ?? "No Name"
+            self.email = data["email"] as? String ?? "No Email"
+
+            if let profileImageURL = data["profileImageURL"] as? String,
+               let url = URL(string: profileImageURL) {
+                self.loadImage(from: url)
             }
         }
     }
 
-    func logOut() {
-        do {
-            try Auth.auth().signOut()
-            isLoggedOut = true
-        } catch {
-            alertItem = AlertItem(title: "Error", message: "Failed to log out: \(error.localizedDescription)")
+    private func loadImage(from url: URL) {
+        DispatchQueue.global(qos: .background).async {
+            if let data = try? Data(contentsOf: url), let image = UIImage(data: data) {
+                DispatchQueue.main.async {
+                    self.profileImage = image
+                }
+            } else {
+                DispatchQueue.main.async {
+                    print("Failed to load profile image from URL")
+                }
+            }
         }
     }
 
-    func uploadProfilePicture(_ image: UIImage) {
-        guard let imageData = image.jpegData(compressionQuality: 0.8),
-              let user = Auth.auth().currentUser else {
-            alertItem = AlertItem(title: "Error", message: "Failed to upload profile picture.")
+    func updateProfileImage(_ image: UIImage) {
+        guard let userId = Auth.auth().currentUser?.uid else {
+            print("User not authenticated")
             return
         }
 
-        let storageRef = Storage.storage().reference().child("profile_pictures/\(user.uid).jpg")
-        storageRef.putData(imageData, metadata: nil) { [weak self] _, error in
+        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+            print("Failed to convert image to data")
+            return
+        }
+
+        let storageRef = Storage.storage().reference().child("profileImages/\(userId).jpg")
+        storageRef.putData(imageData, metadata: nil) { _, error in
             if let error = error {
-                self?.alertItem = AlertItem(title: "Error", message: error.localizedDescription)
-            } else {
-                print("Profile picture uploaded successfully.")
+                print("Error uploading image: \(error.localizedDescription)")
+                return
+            }
+
+            storageRef.downloadURL { url, error in
+                if let error = error {
+                    print("Error fetching download URL: \(error.localizedDescription)")
+                    return
+                }
+
+                if let url = url {
+                    self.db.collection("users").document(userId).updateData([
+                        "profileImageURL": url.absoluteString
+                    ]) { error in
+                        if let error = error {
+                            print("Error updating Firestore: \(error.localizedDescription)")
+                        } else {
+                            print("Profile image URL successfully updated in Firestore")
+                        }
+                    }
+                }
             }
         }
     }
+
+    func logout() {
+        do {
+            try Auth.auth().signOut()
+            self.isLoggedOut = true
+        } catch {
+            print("Error logging out: \(error.localizedDescription)")
+        }
+    }
 }
-
-

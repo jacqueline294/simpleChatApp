@@ -14,52 +14,35 @@ class InboxViewModel: ObservableObject {
     @Published var isLoading: Bool = false // Loading state
     @Published var errorMessage: String? // Error message
     
-    private let db = Firestore.firestore() // Firestore reference
-    
-    // Fetch users from Firestore
+    private let db = Firestore.firestore()
+
     func fetchUsers() {
         isLoading = true
-        errorMessage = nil
-        
-        db.collection("users").getDocuments { [weak self] snapshot, error in
-            guard let self = self else { return }
-            
-            DispatchQueue.main.async { // Correctly opening the closure
-                self.isLoading = false
-                
-                if let error = error {
-                    self.errorMessage = "Failed to fetch users: \(error.localizedDescription)"
-                    print("Firestore error: \(error.localizedDescription)")
-                    return
+        db.collection("users").addSnapshotListener { (querySnapshot, error) in
+            self.isLoading = false
+
+            if let error = error {
+                self.errorMessage = "Error fetching users: \(error.localizedDescription)"
+                print("Error fetching users: \(error.localizedDescription)")
+                return
+            }
+
+            guard let documents = querySnapshot?.documents else {
+                self.errorMessage = "No users found"
+                print("No documents found")
+                return
+            }
+
+            self.users = documents.compactMap { queryDocumentSnapshot -> User? in
+                let data = queryDocumentSnapshot.data()
+                guard let name = data["username"] as? String,
+                      let email = data["email"] as? String else {
+                    print("Missing required fields for document: \(queryDocumentSnapshot.documentID)")
+                    return nil
                 }
-                
-                guard let documents = snapshot?.documents else {
-                    self.errorMessage = "No data found in users collection."
-                    print("No documents found in Firestore collection.")
-                    return
-                }
-                
-                // Safely parse documents into users
-                self.users = documents.compactMap { document -> User? in
-                    let data = document.data()
-                    guard let name = data["name"] as? String,
-                          let email = data["email"] as? String else {
-                        print("Invalid or missing required fields for user \(document.documentID)")
-                        return nil
-                    }
-                    
-                    return User(
-                        id: document.documentID,
-                        name: name,
-                        email: email,
-                        password: "",
-                        profilePictureURL: data["profilePictureURL"] as? String
-                    )
-                }
-                
-                // Debugging output
-                print("Successfully fetched \(self.users.count) users.")
-            } // Make sure this ends the async block
+
+                return User(id: queryDocumentSnapshot.documentID, name: name, email: email, firebaseUser: Auth.auth().currentUser!)
+            }
         }
     }
 }

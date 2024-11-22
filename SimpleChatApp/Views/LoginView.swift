@@ -6,32 +6,24 @@
 //
 
 import SwiftUI
-import Combine
 
 struct LoginView: View {
     @ObservedObject var viewModel: AuthViewModel
-    @Binding var path: [String] // To manage navigation
+    @Binding var path: [String]
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var errorMessage: String = ""
 
     var body: some View {
         VStack(spacing: 20) {
-            
-            Text("Chit Chat stay connected ")
+            Text("Welcome Back")
                 .font(.largeTitle)
-                .bold()
-                
-            Image("Talk")
-            
-            Text("Login")
-                .font(.subheadline)
-                .bold()
-            
+                .fontWeight(.bold)
+
             TextField("Email", text: $email)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .autocapitalization(.none)
                 .keyboardType(.emailAddress)
+                .autocapitalization(.none)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
 
             SecureField("Password", text: $password)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -39,32 +31,28 @@ struct LoginView: View {
             if !errorMessage.isEmpty {
                 Text(errorMessage)
                     .foregroundColor(.red)
-                    .font(.footnote)
             }
 
             Button(action: {
                 viewModel.login(email: email, password: password) { success, error in
                     if success {
-                        path.append("inboxView") // Navigate to inboxView 
+                        path.append("Inbox")
                     } else {
-                        errorMessage = error ?? "An unknown error occurred"
+                        errorMessage = error ?? "An unknown error occurred."
                     }
                 }
             }) {
-                Text("Log In")
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.green)
+                Text("Login")
                     .foregroundColor(.white)
-                    .cornerRadius(10)
+                    .padding()
+                    .background(Color.blue)
+                    .cornerRadius(8)
             }
-            
-            Spacer()
         }
         .padding()
-        .navigationTitle("Log In")
     }
 }
+
 
 
 #Preview {

@@ -16,65 +16,61 @@ struct ChatView: View {
     var body: some View {
         VStack {
             // Header
-            Text("Chat with \(viewModel.messages.first?.senderName ?? "your friend")")
+            Text("Chat with \(viewModel.messages.first?.senderId ?? "your friend")")
                 .font(.headline)
                 .padding()
 
             // Messages List
-            ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(viewModel.messages) { message in
-                        Text(message.content)
-                            .padding()
-                            .background(message.senderId == Auth.auth().currentUser?.uid ? Color.green.opacity(0.2) : Color.blue.opacity(0.2))
-                            .cornerRadius(10)
-                            .frame(maxWidth: .infinity, alignment: message.senderId == Auth.auth().currentUser?.uid ? .trailing : .leading)
+            if viewModel.messages.isEmpty {
+                Text("No messages yet. Start the conversation!")
+                    .foregroundColor(.gray)
+                    .padding()
+            } else {
+                ScrollView {
+                    ForEach(viewModel.messages, id: \.id) { message in
+                        HStack {
+                            if message.senderId == Auth.auth().currentUser?.uid {
+                                Spacer()
+                                Text(message.text)
+                                    .padding()
+                                    .background(Color.blue.opacity(0.3))
+                                    .cornerRadius(8)
+                            } else {
+                                Text(message.text)
+                                    .padding()
+                                    .background(Color.gray.opacity(0.3))
+                                    .cornerRadius(8)
+                                Spacer()
+                            }
+                        }
                     }
                 }
             }
-            .padding()
 
-            // Message Input
+            // Input Field
             HStack {
-                TextField("Type a message", text: $viewModel.newMessage)
+                TextField("Type a message...", text: $viewModel.newMessage)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .frame(minHeight: 40)
-
                 Button(action: {
                     viewModel.sendMessage(toChat: chatId)
                 }) {
                     Text("Send")
+                        .foregroundColor(.white)
                         .padding()
                         .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
+                        .cornerRadius(8)
                 }
             }
             .padding()
         }
         .onAppear {
-            Task {
-                await viewModel.fetchMessages(forChat: chatId)
-            }
+            viewModel.fetchMessages(forChat: chatId)
         }
-    }
-}
-
-// Mock data for preview
-extension ChatViewModel {
-    static var mock: ChatViewModel {
-        let viewModel = ChatViewModel()
-        viewModel.messages = [
-            Message(id: "1", content: "Hello!", senderId: "user1", senderName: "Alice", timestamp: Date()),
-            Message(id: "2", content: "Hi there!", senderId: "user2", senderName: "Bob", timestamp: Date())
-        ]
-        return viewModel
     }
 }
 
 // #Preview directive
 #Preview {
-    ChatView(chatId: "mockChat")
-        .environmentObject(ChatViewModel.mock)
+    ChatView(chatId: "")
 }
 

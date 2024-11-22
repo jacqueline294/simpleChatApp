@@ -7,111 +7,85 @@
 
 import SwiftUI
 
+import SwiftUI
+
 struct RegistrationView: View {
     @ObservedObject var viewModel: AuthViewModel
-    @Binding var path: [String] // To manage navigation
+    @Binding var path: [String]
     @State private var email: String = ""
     @State private var name: String = ""
     @State private var password: String = ""
     @State private var errorMessage: String = ""
     @State private var selectedImage: UIImage? = nil
-    @State private var profileImage: Image? = nil
-    @State private var isPickerPresented: Bool = false
+    @State private var showingImagePicker: Bool = false // Use local state
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("Welcome to Chit Chat")
+            Text("Create an Account")
                 .font(.largeTitle)
-                .bold()
+                .fontWeight(.bold)
 
-            Image("Talk")
-                .resizable()
-                .scaledToFit()
-                .frame(height: 150)
-            
-            Text("Sign up to chat with friends")
-
-            // Profile Picture Picker
-            if let profileImage = profileImage {
-                profileImage
+            // Profile Image Picker
+            if let image = selectedImage {
+                Image(uiImage: image)
                     .resizable()
-                    .scaledToFill()
-                    .frame(width: 120, height: 120)
+                    .scaledToFit()
+                    .frame(width: 100, height: 100)
                     .clipShape(Circle())
-                    .padding()
             } else {
-                Button(action: {
-                    isPickerPresented = true
-                }) {
-                    VStack {
-                        Image(systemName: "person.circle.fill")
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 120, height: 120)
-                            .foregroundColor(.gray)
-                        Text("Add Profile Picture")
-                            .foregroundColor(.blue)
-                            .font(.caption)
+                Circle()
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 100, height: 100)
+                    .overlay(Text("Add Image").foregroundColor(.gray))
+                    .onTapGesture {
+                        showingImagePicker = true
                     }
-                }
-                .padding()
             }
 
-            // Registration Fields
-            TextField("Enter Full Name", text: $name)
+            TextField("Name", text: $name)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-
-            TextField("Enter Email", text: $email)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .autocapitalization(.none)
+            TextField("Email", text: $email)
                 .keyboardType(.emailAddress)
-
-            SecureField("Enter Password", text: $password)
+                .autocapitalization(.none)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+            SecureField("Password", text: $password)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
 
             if !errorMessage.isEmpty {
                 Text(errorMessage)
                     .foregroundColor(.red)
-                    .font(.footnote)
             }
 
-            // Sign Up Button
             Button(action: {
-                guard !name.isEmpty else {
-                    errorMessage = "Please enter your full name"
-                    return
-                }
-
-                viewModel.signUp(email: email, password: password, name: name, profileImage: selectedImage) { success, error in
-                    if success {
-                        path.append("Inbox") // Navigate to InboxView
-                    } else {
-                        errorMessage = error ?? "An unknown error occurred"
-                    }
-                }
+                signUp()
             }) {
                 Text("Sign Up")
-                    .frame(maxWidth: .infinity)
+                    .foregroundColor(.white)
                     .padding()
                     .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
+                    .cornerRadius(8)
             }
-
-            Button("Already have an account? Log In") {
-                path.append("Login") // Navigate to LoginView
-            }
-            .foregroundColor(.blue)
-            
-            Spacer()
         }
         .padding()
-        .navigationTitle("Register")
-        .sheet(isPresented: $isPickerPresented) {
-            ImagePicker(selectedImage: $selectedImage, onImagePicked: { image in
-                profileImage = Image(uiImage: image)
+        .sheet(isPresented: $showingImagePicker) {
+            ImagePicker(selectedImage: $selectedImage) { image in
                 selectedImage = image
-            })
+            }
+        }
+    }
+
+    private func signUp() {
+        guard !email.isEmpty, !password.isEmpty, !name.isEmpty else {
+            errorMessage = "All fields are required."
+            return
+        }
+
+        viewModel.signUp(email: email, password: password, name: name, profileImage: selectedImage) { success, error in
+            if success {
+                path.append("Inbox")
+            } else {
+                errorMessage = error ?? "Registration failed."
+            }
         }
     }
 }

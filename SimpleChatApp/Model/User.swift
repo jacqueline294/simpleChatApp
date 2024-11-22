@@ -10,16 +10,10 @@ import Firebase
 import FirebaseFirestore
 import FirebaseAuth
 
-struct User: Identifiable {
+import Foundation
+
+struct User {
     let id: String
     let name: String
     let email: String
-    let profilePictureURL: String?
-    
-    init(firebaseUser: FirebaseAuth.User) {
-        self.id = firebaseUser.uid
-        self.name = firebaseUser.displayName ?? "Unknown"
-        self.email = firebaseUser.email ?? "No Email"
-        self.profilePictureURL = firebaseUser.photoURL?.absoluteString
-    }
 }
