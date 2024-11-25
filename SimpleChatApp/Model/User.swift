@@ -10,10 +10,9 @@ import Firebase
 import FirebaseFirestore
 import FirebaseAuth
 
-import Foundation
-
 struct User {
     let id: String
     let name: String
     let email: String
 }
+

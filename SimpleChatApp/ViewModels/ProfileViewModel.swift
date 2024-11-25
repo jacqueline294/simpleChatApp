@@ -5,106 +5,107 @@
 //  Created by jacqueline Ngigi on 2024-11-15.
 //
 
-import SwiftUI
 import FirebaseAuth
-import FirebaseStorage
 import FirebaseFirestore
+import FirebaseStorage
 
 class ProfileViewModel: ObservableObject {
     @Published var profileImage: UIImage? = nil
     @Published var name: String = "Loading..."
     @Published var email: String = "Loading..."
-    @Published var showingImagePicker = false
-    @Published var isLoggedOut = false
-    @Published var navigateToInbox = false
-    @Published var isLoading: Bool = false // Added loading state
+    @Published var isLoading: Bool = false
+    @Published var errorMessage: String?
 
     private let db = Firestore.firestore()
+    private let storage = Storage.storage()
 
     func fetchProfile() {
         guard let userId = Auth.auth().currentUser?.uid else {
-            print("User not authenticated")
+            self.errorMessage = "User not authenticated"
             return
         }
 
         isLoading = true
-        db.collection("users").document(userId).getDocument { document, error in
-            self.isLoading = false
-            if let error = error {
-                print("Error fetching profile: \(error.localizedDescription)")
-                return
-            }
+        db.collection("users").document(userId).getDocument { [weak self] document, error in
+            DispatchQueue.main.async {
+                self?.isLoading = false
+                if let error = error {
+                    self?.errorMessage = error.localizedDescription
+                    return
+                }
 
-            guard let data = document?.data() else { return }
-            self.name = data["name"] as? String ?? "No Name"
-            self.email = data["email"] as? String ?? "No Email"
+                guard let data = document?.data() else {
+                    self?.errorMessage = "No profile data found"
+                    return
+                }
 
-            if let profileImageURL = data["profileImageURL"] as? String,
-               let url = URL(string: profileImageURL) {
-                self.loadImage(from: url)
+                self?.name = data["name"] as? String ?? "No Name"
+                self?.email = data["email"] as? String ?? "No Email"
+
+                if let profileImageURL = data["profileImageURL"] as? String,
+                   let url = URL(string: profileImageURL) {
+                    self?.loadImage(from: url)
+                }
             }
         }
     }
 
     private func loadImage(from url: URL) {
-        DispatchQueue.global(qos: .background).async {
+        DispatchQueue.global().async {
             if let data = try? Data(contentsOf: url), let image = UIImage(data: data) {
                 DispatchQueue.main.async {
                     self.profileImage = image
                 }
-            } else {
-                DispatchQueue.main.async {
-                    print("Failed to load profile image from URL")
-                }
             }
         }
     }
 
-    func updateProfileImage(_ image: UIImage) {
+    func updateProfile(name: String, profileImage: UIImage?) {
         guard let userId = Auth.auth().currentUser?.uid else {
-            print("User not authenticated")
+            self.errorMessage = "User not authenticated"
             return
         }
 
+        var userData: [String: Any] = ["name": name]
+        if let profileImage = profileImage {
+            uploadProfileImage(userId: userId, image: profileImage) { [weak self] imageURL in
+                if let imageURL = imageURL {
+                    userData["profileImageURL"] = imageURL
+                }
+                self?.saveProfileData(userId: userId, userData: userData)
+            }
+        } else {
+            saveProfileData(userId: userId, userData: userData)
+        }
+    }
+
+    private func saveProfileData(userId: String, userData: [String: Any]) {
+        db.collection("users").document(userId).updateData(userData) { [weak self] error in
+            if let error = error {
+                self?.errorMessage = error.localizedDescription
+            } else {
+                self?.fetchProfile() // Refresh profile data
+            }
+        }
+    }
+
+    private func uploadProfileImage(userId: String, image: UIImage, completion: @escaping (String?) -> Void) {
         guard let imageData = image.jpegData(compressionQuality: 0.8) else {
-            print("Failed to convert image to data")
+            completion(nil)
             return
         }
 
-        let storageRef = Storage.storage().reference().child("profileImages/\(userId).jpg")
+        let storageRef = storage.reference().child("profileImages/\(userId).jpg")
         storageRef.putData(imageData, metadata: nil) { _, error in
             if let error = error {
-                print("Error uploading image: \(error.localizedDescription)")
+                self.errorMessage = error.localizedDescription
+                completion(nil)
                 return
             }
 
-            storageRef.downloadURL { url, error in
-                if let error = error {
-                    print("Error fetching download URL: \(error.localizedDescription)")
-                    return
-                }
-
-                if let url = url {
-                    self.db.collection("users").document(userId).updateData([
-                        "profileImageURL": url.absoluteString
-                    ]) { error in
-                        if let error = error {
-                            print("Error updating Firestore: \(error.localizedDescription)")
-                        } else {
-                            print("Profile image URL successfully updated in Firestore")
-                        }
-                    }
-                }
+            storageRef.downloadURL { url, _ in
+                completion(url?.absoluteString)
             }
-        }
-    }
-
-    func logout() {
-        do {
-            try Auth.auth().signOut()
-            self.isLoggedOut = true
-        } catch {
-            print("Error logging out: \(error.localizedDescription)")
         }
     }
 }

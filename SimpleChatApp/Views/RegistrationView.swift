@@ -65,6 +65,17 @@ struct RegistrationView: View {
                     .background(Color.blue)
                     .cornerRadius(8)
             }
+
+            Spacer()
+
+            // Navigate to Login View
+            Button(action: {
+                path.append("Login") // Append "Login" to the navigation path
+            }) {
+                Text("Already have an account? Log In")
+                    .foregroundColor(.blue)
+                    .underline()
+            }
         }
         .padding()
         .sheet(isPresented: $showingImagePicker) {
@@ -90,10 +101,9 @@ struct RegistrationView: View {
     }
 }
 
-
 #Preview {
     RegistrationView(
         viewModel: AuthViewModel(),
-                path: .constant([]) 
+        path: .constant([])
     )
 }

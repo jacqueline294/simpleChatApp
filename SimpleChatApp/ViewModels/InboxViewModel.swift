@@ -10,39 +10,48 @@ import FirebaseFirestore
 import FirebaseAuth
 
 class InboxViewModel: ObservableObject {
-    @Published var users: [User] = [] // Users list
-    @Published var isLoading: Bool = false // Loading state
-    @Published var errorMessage: String? // Error message
-    
+    @Published var users: [User] = [] // List of users
+    @Published var isLoading: Bool = false
+    @Published var errorMessage: String?
+
     private let db = Firestore.firestore()
 
     func fetchUsers() {
+        guard let currentUserId = Auth.auth().currentUser?.uid else {
+            self.errorMessage = "Failed to get current user."
+            return
+        }
+
         isLoading = true
-        db.collection("users").addSnapshotListener { (querySnapshot, error) in
-            self.isLoading = false
-
-            if let error = error {
-                self.errorMessage = "Error fetching users: \(error.localizedDescription)"
-                print("Error fetching users: \(error.localizedDescription)")
-                return
-            }
-
-            guard let documents = querySnapshot?.documents else {
-                self.errorMessage = "No users found"
-                print("No documents found")
-                return
-            }
-
-            self.users = documents.compactMap { queryDocumentSnapshot -> User? in
-                let data = queryDocumentSnapshot.data()
-                guard let name = data["username"] as? String,
-                      let email = data["email"] as? String else {
-                    print("Missing required fields for document: \(queryDocumentSnapshot.documentID)")
-                    return nil
+        db.collection("users").getDocuments { [weak self] snapshot, error in
+            DispatchQueue.main.async {
+                self?.isLoading = false
+                if let error = error {
+                    self?.errorMessage = "Failed to fetch users: \(error.localizedDescription)"
+                    return
                 }
 
-                return User(id: queryDocumentSnapshot.documentID, name: name, email: email, firebaseUser: Auth.auth().currentUser!)
+                self?.users = snapshot?.documents.compactMap { document in
+                    let data = document.data()
+                    guard let id = document.documentID as String?,
+                          let name = data["name"] as? String,
+                          let email = data["email"] as? String,
+                          id != currentUserId else {
+                        return nil
+                    }
+                    return User(id: id, name: name, email: email)
+                } ?? []
             }
         }
     }
+
+    func preloadMockUsers() {
+        self.users = [
+            User(id: "1", name: "Alice", email: "alice@example.com"),
+            User(id: "2", name: "Bob", email: "bob@example.com"),
+            User(id: "3", name: "Charlie", email: "charlie@example.com")
+        ]
+    }
 }
+
+

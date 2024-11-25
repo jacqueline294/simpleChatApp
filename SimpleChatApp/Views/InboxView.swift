@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import FirebaseAuth
 
 struct InboxView: View {
     @StateObject private var viewModel = InboxViewModel()
@@ -23,13 +22,25 @@ struct InboxView: View {
                 } else {
                     List(viewModel.users, id: \.id) { user in
                         NavigationLink(destination: ChatView(chatId: user.id)) {
-                            Text(user.name)
+                            VStack(alignment: .leading) {
+                                Text(user.name)
+                                    .font(.headline)
+                                Text(user.email)
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                            }
                         }
                     }
                 }
             }
             .onAppear {
+                #if DEBUG
+                print("Loading mock users for the simulator")
+                viewModel.preloadMockUsers()
+                #else
+                print("Fetching real users from Firebase")
                 viewModel.fetchUsers()
+                #endif
             }
         }
     }
@@ -38,4 +49,5 @@ struct InboxView: View {
 #Preview {
     InboxView()
 }
+
 

@@ -11,24 +11,28 @@ import FirebaseAuth
 struct ContentView: View {
     @StateObject private var viewModel = AuthViewModel()
     @State private var path: [String] = [] // Holds the navigation stack state
-    
+
     var body: some View {
         NavigationStack(path: $path) {
-            if viewModel.user == nil {
-                // If the user is not logged in, show RegistrationView
-                RegistrationView(viewModel: viewModel, path: $path)
-                    .navigationDestination(for: String.self) { destination in
-                        if destination == "Login" {
-                            LoginView(viewModel: viewModel, path: $path)
-                        }
-                    }
+            
+    if viewModel.user == nil {
+    RegistrationView(viewModel: viewModel, path: $path)
+    .navigationDestination(for: String.self) { destination in
+        switch destination {
+        case "Login":
+        LoginView(viewModel: viewModel, path: $path)
+        case "Inbox":
+            InboxView()
+            default:
+            EmptyView()
+        }
+    }
             } else {
-                // If the user is logged in, show InboxView
-                InboxView()
+                ProfileView(authViewModel: viewModel)
             }
         }
         .onAppear {
-            viewModel.updateUser() // Update the user state when the view appears
+            viewModel.setupAuthListener()
         }
     }
 }
