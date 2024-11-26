@@ -13,6 +13,7 @@ class AuthViewModel: ObservableObject {
     @Published var user: User? = nil
     @Published var errorMessage: String?
     
+    
     private let db = Firestore.firestore()
     
     init() {

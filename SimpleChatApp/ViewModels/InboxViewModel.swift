@@ -13,15 +13,17 @@ class InboxViewModel: ObservableObject {
     @Published var users: [User] = [] // List of users
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
+    @Published var selectedChatId: String? // The selected chat ID for navigation purposes
 
     private let db = Firestore.firestore()
 
+    // Fetch all users except the current user
     func fetchUsers() {
         guard let currentUserId = Auth.auth().currentUser?.uid else {
             self.errorMessage = "Failed to get current user."
             return
         }
-        print("Fetching user from firestore...")
+        print("Fetching users from Firestore...")
 
         isLoading = true
         db.collection("users").getDocuments { [weak self] snapshot, error in
@@ -50,6 +52,52 @@ class InboxViewModel: ObservableObject {
         }
     }
 
+    // Get or create a chat ID for the current user and the selected user
+    func getOrCreateChatId(with userId: String, completion: @escaping (String?) -> Void) {
+        guard let currentUserId = Auth.auth().currentUser?.uid else {
+            self.errorMessage = "Failed to get current user."
+            completion(nil)
+            return
+        }
+
+        // Check if a chat already exists between the users
+        let chatsRef = db.collection("chats")
+        chatsRef
+            .whereField("participants", arrayContains: currentUserId)
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    self.errorMessage = "Failed to fetch chats: \(error.localizedDescription)"
+                    completion(nil)
+                    return
+                }
+
+                // Check if there's an existing chat that includes both users
+                if let document = snapshot?.documents.first(where: {
+                    let participants = $0.data()["participants"] as? [String] ?? []
+                    return participants.contains(userId)
+                }) {
+                    // Chat already exists, return its ID
+                    completion(document.documentID)
+                } else {
+                    // Chat doesn't exist, create a new one
+                    let newChatRef = chatsRef.document()
+                    let chatData: [String: Any] = [
+                        "participants": [currentUserId, userId],
+                        "created": Timestamp(date: Date())
+                    ]
+                    newChatRef.setData(chatData) { error in
+                        if let error = error {
+                            self.errorMessage = "Failed to create chat: \(error.localizedDescription)"
+                            completion(nil)
+                        } else {
+                            completion(newChatRef.documentID)
+                        }
+                    }
+                }
+            }
+    }
+
+    // Preload mock users for testing purposes
     func preloadMockUsers() {
         self.users = [
             User(id: "1", name: "Alice", email: "alice@example.com", profileImageURL: nil),

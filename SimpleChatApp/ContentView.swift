@@ -10,7 +10,7 @@ import FirebaseAuth
 
 struct ContentView: View {
     @StateObject private var viewModel = AuthViewModel()
-    @State private var path: [String] = [] // Holds the navigation stack state
+    @State private var path: [Destination] = [] // Change from [String] to [Destination]
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -21,16 +21,12 @@ struct ContentView: View {
                     ProfileView(authViewModel: viewModel, path: $path) // Pass path for further navigation
                 }
             }
-            .navigationDestination(for: String.self) { destination in
-                switch destination {
-                case "Login":
-                    LoginView(viewModel: viewModel, path: $path)
-                case "Profile":
-                    ProfileView(authViewModel: viewModel, path: $path)
-                case "Inbox":
-                    InboxView()
-                default:
-                    EmptyView()
+            .navigationDestination(for: Destination.self) { destination in
+                switch destination.type {
+                case .inbox:
+                    InboxView(path: $path) // Pass the path binding to InboxView
+                case .chat(let user, let chatId):
+                    ChatView(user: user, chatId: chatId)
                 }
             }
         }
@@ -43,4 +39,3 @@ struct ContentView: View {
 #Preview {
     ContentView()
 }
-

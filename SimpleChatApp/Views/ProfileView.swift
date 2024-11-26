@@ -10,7 +10,7 @@ import SwiftUI
 struct ProfileView: View {
     @ObservedObject var authViewModel: AuthViewModel // Handles logout and user state
     @StateObject private var profileViewModel = ProfileViewModel() // Manages profile data
-    @Binding var path: [String] // Use binding to update the main navigation stack
+    @Binding var path: [Destination] // Use binding to update the main navigation stack
 
     var body: some View {
         VStack(spacing: 20) {
@@ -42,7 +42,7 @@ struct ProfileView: View {
 
             // Navigation to Inbox
             Button("Go to Inbox") {
-                path.append("Inbox")
+                path.append(Destination(id: UUID(), type: .inbox))
             }
             .buttonStyle(.bordered)
 
@@ -64,4 +64,5 @@ struct ProfileView_Previews: PreviewProvider {
         ProfileView(authViewModel: AuthViewModel(), path: .constant([]))
     }
 }
+
 

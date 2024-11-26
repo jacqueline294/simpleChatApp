@@ -8,49 +8,74 @@
 import SwiftUI
 
 struct InboxView: View {
-    @StateObject private var viewModel = InboxViewModel()
+    @StateObject private var viewModel = InboxViewModel() // Inbox view model
+    @State private var selectedUser: User? = nil
+    @Binding var path: [Destination] // Use binding to update the main navigation stack
 
     var body: some View {
-        VStack {
-            if viewModel.isLoading {
-                ProgressView("Loading users...")
-                    .progressViewStyle(CircularProgressViewStyle())
-                    .padding()
-            } else if viewModel.users.isEmpty {
-                Text("No chats available. Start a new conversation!")
-                    .foregroundColor(.gray)
-                    .multilineTextAlignment(.center)
-                    .padding()
-            } else {
-                List(viewModel.users, id: \.id) { user in
-                    NavigationLink(destination: ChatView(chatId: user.id)) {
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text(user.name)
-                                .font(.headline)
-                            Text(user.email)
-                                .font(.subheadline)
-                                .foregroundColor(.gray)
+        NavigationStack(path: $path) {
+            VStack {
+                List(viewModel.users) { user in
+                    Button(action: {
+                        // Get or create chat ID, then navigate to ChatView
+                        viewModel.getOrCreateChatId(with: user.id) { chatId in
+                            if let chatId = chatId {
+                                DispatchQueue.main.async {
+                                    viewModel.selectedChatId = chatId
+                                    selectedUser = user
+                                    if let selectedUser = selectedUser {
+                                        path.append(Destination(id: UUID(), type: .chat(selectedUser, chatId)))
+                                    }
+                                }
+                            }
                         }
-                        .padding(.vertical, 8)
+                    }) {
+                        HStack {
+                            if let profileImageUrl = user.profileImageURL, let url = URL(string: profileImageUrl) {
+                                AsyncImage(url: url) { phase in
+                                    switch phase {
+                                    case .empty:
+                                        ProgressView()
+                                    case .success(let image):
+                                        image.resizable().scaledToFill()
+                                    case .failure:
+                                        Image(systemName: "person.crop.circle.fill").resizable().scaledToFill()
+                                    @unknown default:
+                                        ProgressView()
+                                    }
+                                }
+                                .frame(width: 50, height: 50)
+                                .clipShape(Circle())
+                            }
+                            VStack(alignment: .leading) {
+                                Text(user.name)
+                                    .font(.headline)
+                                Text(user.email)
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                            }
+                        }
                     }
                 }
-                .listStyle(PlainListStyle())
+                .navigationTitle("Inbox")
+                .navigationDestination(for: Destination.self) { destination in
+                    switch destination.type {
+                    case .inbox:
+                        InboxView(path: $path)
+                    case .chat(let user, let chatId):
+                        ChatView(user: user, chatId: chatId)
+                    }
+                }
             }
         }
-        .navigationTitle("Inbox")
-        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            // Always fetch real users instead of using mock users
             viewModel.fetchUsers()
         }
     }
 }
 
-#Preview {
-    InboxView()
+struct InboxView_Previews: PreviewProvider {
+    static var previews: some View {
+        InboxView(path: .constant([]))
+    }
 }
-
-
-
-
-

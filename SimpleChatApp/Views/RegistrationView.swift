@@ -7,11 +7,9 @@
 
 import SwiftUI
 
-import SwiftUI
-
 struct RegistrationView: View {
     @ObservedObject var viewModel: AuthViewModel
-    @Binding var path: [String]
+    @Binding var path: [Destination]
     @State private var email: String = ""
     @State private var name: String = ""
     @State private var password: String = ""
@@ -59,9 +57,11 @@ struct RegistrationView: View {
             Button(action: {
                 viewModel.signUp(email: email, password: password, name: name, profileImage: selectedImage) { success, error in
                     if success {
-                    path.append("Inbox") // Navigate to Inbox on success
+                        path.append(Destination(id: UUID(), type: .inbox)) // Navigate to Inbox on success
+                    } else if let error = error {
+                        errorMessage = error
+                    }
                 }
-           }
             }) {
                 Text("Sign Up")
                     .foregroundColor(.white)
@@ -74,7 +74,7 @@ struct RegistrationView: View {
 
             // Navigate to Login View
             Button(action: {
-                path.append("Login") // Append "Login" to the navigation path
+                path.append(Destination(id: UUID(), type: .inbox)) // Append login destination using Destination struct
             }) {
                 Text("Already have an account? Log In")
                     .foregroundColor(.blue)
@@ -89,6 +89,14 @@ struct RegistrationView: View {
         }
     }
 }
+
+#Preview {
+    RegistrationView(
+        viewModel: AuthViewModel(),
+        path: .constant([])
+    )
+}
+
 
 #Preview {
     RegistrationView(

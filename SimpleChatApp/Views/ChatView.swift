@@ -2,75 +2,123 @@
 //  ChatView.swift
 //  SimpleChatApp
 //
-//  Created by jacqueline Ngigi on 2024-11-15.
+//  Created by jacqueline Ngigi on 2024-11-26.
 //
-
 import SwiftUI
-import FirebaseAuth
-import FirebaseFirestore
 
 struct ChatView: View {
-    @StateObject private var viewModel = ChatViewModel()
-    var chatId: String
+    @StateObject private var viewModel: ChatViewModel
+    let user: User
+    let chatId: String  // The chat ID needed for fetching and sending messages.
+    @Environment(\.dismiss) private var dismiss 
 
+    init(user: User, chatId: String) {
+        self.user = user
+        self.chatId = chatId
+        _viewModel = StateObject(wrappedValue: ChatViewModel())
+    }
+    
     var body: some View {
         VStack {
-            // Header
-            Text("Chat with \(viewModel.messages.first?.senderId ?? "your friend")")
-                .font(.headline)
-                .padding()
-
-            // Messages List
-            if viewModel.messages.isEmpty {
-                Text("No messages yet. Start the conversation!")
-                    .foregroundColor(.gray)
-                    .padding()
-            } else {
-                ScrollView {
-                    ForEach(viewModel.messages, id: \.id) { message in
+            
+            Button(action: {
+            dismiss() // Navigate back to Inbox
+            }) {
+                Image(systemName: "chevron.left")
+                    .font(.title2)
+                    .foregroundColor(.blue)
+                    
+                }
+                Spacer()
+            
+            if let profileImageUrl = user.profileImageURL {
+                if let url = URL(string: profileImageUrl) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .empty:
+                            ProgressView()
+                        case .success(let image):
+                            image.resizable().scaledToFill()
+                        case .failure:
+                            Image(systemName: "person.crop.circle.fill").resizable().scaledToFill()
+                        @unknown default:
+                            ProgressView()
+                        }
+                    }
+                    .frame(width: 100, height: 100)
+                    .clipShape(Circle())
+                }
+                VStack(spacing: 4) {
+                    Text(user.name)
+                        .font(.title)
+                        .fontWeight(.semibold)
+                    
+                    Text("Messenger")
+                        .font(.footnote)
+                        .foregroundColor(.gray)
+                }
+            }
+            
+            // Messages View
+            ScrollView {
+                VStack {
+                    ForEach(viewModel.messages) { message in
                         HStack {
-                            if message.senderId == Auth.auth().currentUser?.uid {
+                            if message.senderId == user.id {
                                 Spacer()
                                 Text(message.text)
-                                    .padding()
-                                    .background(Color.blue.opacity(0.3))
+                                    .padding(10)
+                                    .background(Color.blue)
+                                    .foregroundColor(.white)
                                     .cornerRadius(8)
+                                    .frame(maxWidth: 250, alignment: .trailing)
                             } else {
                                 Text(message.text)
-                                    .padding()
-                                    .background(Color.gray.opacity(0.3))
+                                    .padding(10)
+                                    .background(Color(.systemGray5))
                                     .cornerRadius(8)
+                                    .frame(maxWidth: 250, alignment: .leading)
                                 Spacer()
                             }
                         }
+                        .id(message.id)
                     }
                 }
+                .padding()
             }
-
-            // Input Field
-            HStack {
-                TextField("Type a message...", text: $viewModel.newMessage)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
+            
+            // Message Input View
+            Spacer()
+            
+            ZStack(alignment: .trailing) {
+                TextField("Message", text: $viewModel.newMessage, axis: .vertical)
+                    .padding(12)
+                    .padding(.trailing, 40)
+                    .background(Color(.systemGroupedBackground))
+                    .clipShape(Capsule())
+                    .font(.subheadline)
+                
                 Button(action: {
                     viewModel.sendMessage(toChat: chatId)
                 }) {
                     Text("Send")
-                        .foregroundColor(.white)
-                        .padding()
-                        .background(Color.blue)
-                        .cornerRadius(8)
+                        .fontWeight(.semibold)
                 }
+                .padding(.horizontal)
             }
             .padding()
         }
+        .navigationTitle("")
+        .navigationBarHidden(true)
         .onAppear {
             viewModel.fetchMessages(forChat: chatId)
         }
     }
 }
 
-// #Preview directive
-#Preview {
-    ChatView(chatId: "")
+struct ChatView_Previews: PreviewProvider {
+    static var previews: some View {
+        let dummyUser = User(id: "123", name: "John Doe", email: "john@example.com", profileImageURL: nil)
+        ChatView(user: dummyUser, chatId: "dummyChatId")
+    }
 }
-
