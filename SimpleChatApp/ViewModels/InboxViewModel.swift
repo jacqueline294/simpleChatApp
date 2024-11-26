@@ -52,7 +52,7 @@ class InboxViewModel: ObservableObject {
         }
     }
 
-    // Get or create a chat ID for the current user and the selected user
+    // create a chat ID for the current user and the selected user
     func getOrCreateChatId(with userId: String, completion: @escaping (String?) -> Void) {
         guard let currentUserId = Auth.auth().currentUser?.uid else {
             self.errorMessage = "Failed to get current user."
@@ -60,7 +60,7 @@ class InboxViewModel: ObservableObject {
             return
         }
 
-        // Check if a chat already exists between the users
+        // Check if a chat already exists
         let chatsRef = db.collection("chats")
         chatsRef
             .whereField("participants", arrayContains: currentUserId)
@@ -95,14 +95,5 @@ class InboxViewModel: ObservableObject {
                     }
                 }
             }
-    }
-
-    // Preload mock users for testing purposes
-    func preloadMockUsers() {
-        self.users = [
-            User(id: "1", name: "Alice", email: "alice@example.com", profileImageURL: nil),
-            User(id: "2", name: "Bob", email: "bob@example.com", profileImageURL: nil),
-            User(id: "3", name: "Charlie", email: "charlie@example.com", profileImageURL: nil)
-        ]
     }
 }

@@ -10,6 +10,7 @@ import FirebaseFirestore
 import FirebaseStorage
 
 class AuthViewModel: ObservableObject {
+    //properties to check for changes in user and error message
     @Published var user: User? = nil
     @Published var errorMessage: String?
     
@@ -22,9 +23,10 @@ class AuthViewModel: ObservableObject {
 
    //Authentication Listener
     func setupAuthListener() {
+        //a listener to monitor changes in the authenication state its triggered when a user logs in or logs out
         Auth.auth().addStateDidChangeListener { [weak self] _, firebaseUser in
             guard let self = self else { return }
-            if let firebaseUser = firebaseUser {
+            if let firebaseUser = firebaseUser {// fetch user data if the user is logged in
                 self.fetchUserFromFirestore(userId: firebaseUser.uid) { success, error in
                     if let error = error {
                         self.errorMessage = error
@@ -51,13 +53,13 @@ class AuthViewModel: ObservableObject {
                 completion(false, "Failed to fetch user ID")
                 return
             }
-            
+    //prepare firstore user data
             var userData: [String: Any] = [
                 "name": name,
                 "email": email,
                 "createdAt": FieldValue.serverTimestamp()
             ]
-            
+            //upload image and save it to firestore
             if let profileImage = profileImage {
                 self.uploadProfileImage(userId: userId, image: profileImage) { imageURL in
                     guard let imageURL = imageURL else {
@@ -133,7 +135,7 @@ class AuthViewModel: ObservableObject {
                 completion(false, error.localizedDescription)
                 return
             }
-            
+            // get user data from firestore documents
             guard let data = document?.data(),
                   let name = data["name"] as? String,
                   let email = data["email"] as? String else {
@@ -162,7 +164,7 @@ class AuthViewModel: ObservableObject {
                 completion(nil)
                 return
             }
-            
+            // get the URl for the uploaded image 
             storageRef.downloadURL { url, _ in
                 completion(url?.absoluteString)
             }

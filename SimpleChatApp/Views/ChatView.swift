@@ -22,15 +22,16 @@ struct ChatView: View {
         VStack {
             
             Button(action: {
-            dismiss() // Navigate back to Inbox
+                dismiss() // Navigate back to Inbox
             }) {
-                Image(systemName: "chevron.left")
+                Image(systemName: "chevron.backward.circle.fill")
                     .font(.title2)
                     .foregroundColor(.blue)
-                    
+                Spacer()
+                
                 }
                 Spacer()
-            
+            // to set the selected user image at the top of the page
             if let profileImageUrl = user.profileImageURL {
                 if let url = URL(string: profileImageUrl) {
                     AsyncImage(url: url) { phase in
@@ -40,7 +41,9 @@ struct ChatView: View {
                         case .success(let image):
                             image.resizable().scaledToFill()
                         case .failure:
-                            Image(systemName: "person.crop.circle.fill").resizable().scaledToFill()
+                            Image(systemName: "person.crop.circle.fill")
+                                .resizable()
+                                .scaledToFill()
                         @unknown default:
                             ProgressView()
                         }

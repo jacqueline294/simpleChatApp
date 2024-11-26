@@ -15,9 +15,12 @@ class ChatViewModel: ObservableObject {
 
     private let db = Firestore.firestore()
 
+    // Fetch messages for the specific chat room using the chatId
     func fetchMessages(forChat chatId: String) {
-        db.collection("messages")
-            .whereField("chatId", isEqualTo: chatId)
+        // Access the messages subcollection under the specific chat document
+        db.collection("chats")
+            .document(chatId)
+            .collection("messages")
             .order(by: "timestamp", descending: false)
             .addSnapshotListener { querySnapshot, error in
                 if let error = error {
@@ -30,18 +33,21 @@ class ChatViewModel: ObservableObject {
                     return
                 }
 
+                // Map documents to Message objects
                 self.messages = documents.compactMap { queryDocumentSnapshot in
                     try? queryDocumentSnapshot.data(as: Message.self)
                 }
             }
     }
 
+    // Send a new message to the specific chat room using the chatId
     func sendMessage(toChat chatId: String) {
         guard let userId = Auth.auth().currentUser?.uid else {
             self.errorMessage = "User not authenticated"
             return
         }
 
+        // Create a new message with the current user as the sender
         let newMessage = Message(
             id: UUID().uuidString,
             text: self.newMessage,
@@ -50,11 +56,17 @@ class ChatViewModel: ObservableObject {
         )
 
         do {
-            try db.collection("messages").document(newMessage.id).setData(from: newMessage)
+            // Add the new message to the messages subcollection under the specific chat document
+            try db.collection("chats")
+                .document(chatId)
+                .collection("messages")
+                .document(newMessage.id)
+                .setData(from: newMessage)
+            
+            // Clear the new message input field after sending the message
             self.newMessage = ""
         } catch {
             self.errorMessage = error.localizedDescription
         }
     }
 }
-

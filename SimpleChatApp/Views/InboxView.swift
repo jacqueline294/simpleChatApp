@@ -15,33 +15,38 @@ struct InboxView: View {
     var body: some View {
         NavigationStack(path: $path) {
             VStack {
+            
                 List(viewModel.users) { user in
-                    Button(action: {
-                        // Get or create chat ID, then navigate to ChatView
-                        viewModel.getOrCreateChatId(with: user.id) { chatId in
-                            if let chatId = chatId {
-                                DispatchQueue.main.async {
-                                    viewModel.selectedChatId = chatId
-                                    selectedUser = user
-                                    if let selectedUser = selectedUser {
-                                        path.append(Destination(id: UUID(), type: .chat(selectedUser, chatId)))
+            Button(action: {
+                        
+            viewModel.getOrCreateChatId(with: user.id) { chatId in
+                if let chatId = chatId {
+                    DispatchQueue.main.async {
+                    viewModel.selectedChatId = chatId
+                    selectedUser = user
+            if let selectedUser = selectedUser {
+            path.append(Destination(id: UUID(), type: .chat(selectedUser, chatId)))
                                     }
                                 }
                             }
                         }
                     }) {
                         HStack {
-                            if let profileImageUrl = user.profileImageURL, let url = URL(string: profileImageUrl) {
-                                AsyncImage(url: url) { phase in
-                                    switch phase {
-                                    case .empty:
-                                        ProgressView()
-                                    case .success(let image):
-                                        image.resizable().scaledToFill()
-                                    case .failure:
-                                        Image(systemName: "person.crop.circle.fill").resizable().scaledToFill()
-                                    @unknown default:
-                                        ProgressView()
+                            
+        if let profileImageUrl = user.profileImageURL, let url = URL(string: profileImageUrl) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                    case .empty:
+                    ProgressView()
+                    case .success(let image):
+                    image.resizable()
+                        .scaledToFill()
+                    case .failure:
+                    Image(systemName: "person.crop.circle.fill")
+                        .resizable()
+                        .scaledToFill()
+                @unknown default:
+                    ProgressView()
                                     }
                                 }
                                 .frame(width: 50, height: 50)
