@@ -57,7 +57,11 @@ struct RegistrationView: View {
             }
 
             Button(action: {
-                signUp()
+                viewModel.signUp(email: email, password: password, name: name, profileImage: selectedImage) { success, error in
+                    if success {
+                    path.append("Inbox") // Navigate to Inbox on success
+                }
+           }
             }) {
                 Text("Sign Up")
                     .foregroundColor(.white)
@@ -81,21 +85,6 @@ struct RegistrationView: View {
         .sheet(isPresented: $showingImagePicker) {
             ImagePicker(selectedImage: $selectedImage) { image in
                 selectedImage = image
-            }
-        }
-    }
-
-    private func signUp() {
-        guard !email.isEmpty, !password.isEmpty, !name.isEmpty else {
-            errorMessage = "All fields are required."
-            return
-        }
-
-        viewModel.signUp(email: email, password: password, name: name, profileImage: selectedImage) { success, error in
-            if success {
-                path.append("Inbox")
-            } else {
-                errorMessage = error ?? "Registration failed."
             }
         }
     }

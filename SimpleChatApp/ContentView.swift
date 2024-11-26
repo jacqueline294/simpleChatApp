@@ -14,21 +14,24 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            
-    if viewModel.user == nil {
-    RegistrationView(viewModel: viewModel, path: $path)
-    .navigationDestination(for: String.self) { destination in
-        switch destination {
-        case "Login":
-        LoginView(viewModel: viewModel, path: $path)
-        case "Inbox":
-            InboxView()
-            default:
-            EmptyView()
-        }
-    }
-            } else {
-                ProfileView(authViewModel: viewModel)
+            Group {
+                if viewModel.user == nil {
+                    RegistrationView(viewModel: viewModel, path: $path)
+                } else {
+                    ProfileView(authViewModel: viewModel, path: $path) // Pass path for further navigation
+                }
+            }
+            .navigationDestination(for: String.self) { destination in
+                switch destination {
+                case "Login":
+                    LoginView(viewModel: viewModel, path: $path)
+                case "Profile":
+                    ProfileView(authViewModel: viewModel, path: $path)
+                case "Inbox":
+                    InboxView()
+                default:
+                    EmptyView()
+                }
             }
         }
         .onAppear {
@@ -40,3 +43,4 @@ struct ContentView: View {
 #Preview {
     ContentView()
 }
+

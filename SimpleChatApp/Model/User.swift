@@ -10,9 +10,11 @@ import Firebase
 import FirebaseFirestore
 import FirebaseAuth
 
-struct User {
+struct User: Identifiable, Decodable {
     let id: String
     let name: String
     let email: String
+    let profileImageURL: String?
 }
+
 

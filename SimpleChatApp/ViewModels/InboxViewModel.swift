@@ -21,6 +21,7 @@ class InboxViewModel: ObservableObject {
             self.errorMessage = "Failed to get current user."
             return
         }
+        print("Fetching user from firestore...")
 
         isLoading = true
         db.collection("users").getDocuments { [weak self] snapshot, error in
@@ -39,7 +40,11 @@ class InboxViewModel: ObservableObject {
                           id != currentUserId else {
                         return nil
                     }
-                    return User(id: id, name: name, email: email)
+                    
+                    // Retrieve optional profileImageURL
+                    let profileImageURL = data["profileImageURL"] as? String
+
+                    return User(id: id, name: name, email: email, profileImageURL: profileImageURL)
                 } ?? []
             }
         }
@@ -47,11 +52,9 @@ class InboxViewModel: ObservableObject {
 
     func preloadMockUsers() {
         self.users = [
-            User(id: "1", name: "Alice", email: "alice@example.com"),
-            User(id: "2", name: "Bob", email: "bob@example.com"),
-            User(id: "3", name: "Charlie", email: "charlie@example.com")
+            User(id: "1", name: "Alice", email: "alice@example.com", profileImageURL: nil),
+            User(id: "2", name: "Bob", email: "bob@example.com", profileImageURL: nil),
+            User(id: "3", name: "Charlie", email: "charlie@example.com", profileImageURL: nil)
         ]
     }
 }
-
-

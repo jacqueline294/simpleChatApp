@@ -5,74 +5,63 @@
 //  Created by jacqueline Ngigi on 2024-11-15.
 //
 
-
 import SwiftUI
 
 struct ProfileView: View {
     @ObservedObject var authViewModel: AuthViewModel // Handles logout and user state
     @StateObject private var profileViewModel = ProfileViewModel() // Manages profile data
-    @State private var path: [String] = [] // Navigation stack state
+    @Binding var path: [String] // Use binding to update the main navigation stack
 
     var body: some View {
-        NavigationStack(path: $path) {
-            VStack(spacing: 20) {
-                // Profile Image Section
-                if let image = profileViewModel.profileImage {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 100, height: 100)
-                        .clipShape(Circle())
-                } else {
-                    Circle()
-                        .fill(Color.gray.opacity(0.3))
-                        .frame(width: 100, height: 100)
-                }
-
-                // Profile Details
-                Text(profileViewModel.name)
-                    .font(.title)
-
-                Text(profileViewModel.email)
-                    .foregroundColor(.gray)
-
-                // Loading Indicator
-                if profileViewModel.isLoading {
-                    ProgressView()
-                }
-
-                // Navigation to Inbox
-                Button("Go to Inbox") {
-                    path.append("Inbox")
-                }
-                .buttonStyle(.bordered)
-
-                // Logout Button
-                Button("Logout") {
-                    authViewModel.logout()
-                }
-                .foregroundColor(.red)
+        VStack(spacing: 20) {
+            // Profile Image Section
+            if let image = profileViewModel.profileImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 100, height: 100)
+                    .clipShape(Circle())
+            } else {
+                Circle()
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 100, height: 100)
+                    .overlay(Text("No Image").foregroundColor(.gray))
             }
-            .padding()
-            .onAppear {
-                profileViewModel.fetchProfile()
+
+            // Profile Details
+            Text(profileViewModel.name)
+                .font(.title)
+
+            Text(profileViewModel.email)
+                .foregroundColor(.gray)
+
+            // Loading Indicator
+            if profileViewModel.isLoading {
+                ProgressView()
             }
-            .navigationDestination(for: String.self) { destination in
-                switch destination {
-                case "Inbox":
-                    InboxView()
-                default:
-                    EmptyView()
-                }
+
+            // Navigation to Inbox
+            Button("Go to Inbox") {
+                path.append("Inbox")
             }
+            .buttonStyle(.bordered)
+
+            // Logout Button
+            Button("Logout") {
+                authViewModel.logout()
+            }
+            .foregroundColor(.red)
+        }
+        .padding()
+        .onAppear {
+            profileViewModel.fetchProfile()
         }
     }
 }
 
 struct ProfileView_Previews: PreviewProvider {
     static var previews: some View {
-        ProfileView(authViewModel: AuthViewModel())
+        ProfileView(authViewModel: AuthViewModel(), path: .constant([]))
     }
 }
-
 

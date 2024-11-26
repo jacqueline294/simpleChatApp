@@ -16,27 +16,29 @@ class AuthViewModel: ObservableObject {
     private let db = Firestore.firestore()
     
     init() {
-            setupAuthListener() // Automatically starts listening when the view model is initialized
-        }
+        setupAuthListener() // Automatically starts listening when the view model is initialized
+    }
 
-        // MARK: - Authentication Listener
-        func setupAuthListener() {
-            Auth.auth().addStateDidChangeListener { [weak self] _, user in
-                if let user = user {
-                    self?.user = User(
-                        id: user.uid,
-                        name: user.displayName ?? "No Name",
-                        email: user.email ?? "No Email"
-                    )
-                } else {
-                    self?.user = nil
+   //Authentication Listener
+    func setupAuthListener() {
+        Auth.auth().addStateDidChangeListener { [weak self] _, firebaseUser in
+            guard let self = self else { return }
+            if let firebaseUser = firebaseUser {
+                self.fetchUserFromFirestore(userId: firebaseUser.uid) { success, error in
+                    if let error = error {
+                        self.errorMessage = error
+                    }
                 }
+            } else {
+                self.user = nil
             }
         }
+    }
     
-    // MARK: - User Sign-Up
+    //  User Sign-Up
     func signUp(email: String, password: String, name: String, profileImage: UIImage?, completion: @escaping (Bool, String?) -> Void) {
-        Auth.auth().createUser(withEmail: email, password: password) { result, error in
+        Auth.auth().createUser(withEmail: email, password: password) { [weak self] result, error in
+            guard let self = self else { return }
             if let error = error {
                 self.errorMessage = error.localizedDescription
                 completion(false, error.localizedDescription)
@@ -57,6 +59,10 @@ class AuthViewModel: ObservableObject {
             
             if let profileImage = profileImage {
                 self.uploadProfileImage(userId: userId, image: profileImage) { imageURL in
+                    guard let imageURL = imageURL else {
+                        completion(false, "Failed to upload profile image")
+                        return
+                    }
                     userData["profileImageURL"] = imageURL
                     self.saveUserToFirestore(userId: userId, userData: userData, completion: completion)
                 }
@@ -66,9 +72,10 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-    // MARK: - User Login
+    //  User Login
     func login(email: String, password: String, completion: @escaping (Bool, String?) -> Void) {
-        Auth.auth().signIn(withEmail: email, password: password) { result, error in
+        Auth.auth().signIn(withEmail: email, password: password) { [weak self] result, error in
+            guard let self = self else { return }
             if let error = error {
                 self.errorMessage = error.localizedDescription
                 completion(false, error.localizedDescription)
@@ -85,7 +92,7 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-    // MARK: - User Logout
+    //  User Logout
     func logout() {
         do {
             try Auth.auth().signOut()
@@ -95,7 +102,7 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Update User
+    //  Update User
     func updateUser() {
         guard let userId = Auth.auth().currentUser?.uid else {
             self.user = nil
@@ -104,9 +111,10 @@ class AuthViewModel: ObservableObject {
         self.fetchUserFromFirestore(userId: userId) { _, _ in }
     }
     
-    // MARK: - Helper Functions
+    //  save user to firestore
     private func saveUserToFirestore(userId: String, userData: [String: Any], completion: @escaping (Bool, String?) -> Void) {
-        db.collection("users").document(userId).setData(userData) { error in
+        db.collection("users").document(userId).setData(userData) { [weak self] error in
+            guard let self = self else { return }
             if let error = error {
                 self.errorMessage = error.localizedDescription
                 completion(false, error.localizedDescription)
@@ -117,7 +125,8 @@ class AuthViewModel: ObservableObject {
     }
     
     private func fetchUserFromFirestore(userId: String, completion: @escaping (Bool, String?) -> Void) {
-        db.collection("users").document(userId).getDocument { document, error in
+        db.collection("users").document(userId).getDocument { [weak self] document, error in
+            guard let self = self else { return }
             if let error = error {
                 self.errorMessage = error.localizedDescription
                 completion(false, error.localizedDescription)
@@ -132,7 +141,8 @@ class AuthViewModel: ObservableObject {
                 return
             }
             
-            self.user = User(id: userId, name: name, email: email)
+            let profileImageURL = data["profileImageURL"] as? String
+            self.user = User(id: userId, name: name, email: email, profileImageURL: profileImageURL)
             completion(true, nil)
         }
     }
@@ -144,7 +154,8 @@ class AuthViewModel: ObservableObject {
         }
         
         let storageRef = Storage.storage().reference().child("profileImages/\(userId).jpg")
-        storageRef.putData(imageData, metadata: nil) { _, error in
+        storageRef.putData(imageData, metadata: nil) { [weak self] _, error in
+            guard let self = self else { return }
             if let error = error {
                 self.errorMessage = error.localizedDescription
                 completion(nil)
