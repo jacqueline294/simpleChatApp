@@ -9,7 +9,7 @@ import SwiftUI
 
 struct LoginView: View {
     @ObservedObject var viewModel: AuthViewModel
-    @Binding var path: [String]
+    @Binding var path: [Destination]
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var errorMessage: String = ""
@@ -43,7 +43,8 @@ struct LoginView: View {
             Button(action: {
                 viewModel.login(email: email, password: password) { success, error in
                     if success {
-                        path.append("Profile")
+                        // Append a new Destination to navigate to Profile
+                        path.append(Destination(id: UUID(), type: .profile))
                     } else {
                         errorMessage = error ?? "An unknown error occurred."
                     }
@@ -60,11 +61,9 @@ struct LoginView: View {
     }
 }
 
-
-
 #Preview {
     LoginView(
         viewModel: AuthViewModel(),
-                path: .constant([]) 
+        path: .constant([])
     )
 }

@@ -15,7 +15,7 @@ struct RegistrationView: View {
     @State private var password: String = ""
     @State private var errorMessage: String = ""
     @State private var selectedImage: UIImage? = nil
-    @State private var showingImagePicker: Bool = false // Use local state
+    @State private var showingImagePicker: Bool = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -74,7 +74,7 @@ struct RegistrationView: View {
 
             // Navigate to Login View
             Button(action: {
-                path.append(Destination(id: UUID(), type:.inbox)) 
+                path.append(Destination(id: UUID(), type: .login)) // Append login destination using Destination struct
             }) {
                 Text("Already have an account? Log In")
                     .foregroundColor(.blue)
@@ -89,14 +89,6 @@ struct RegistrationView: View {
         }
     }
 }
-
-#Preview {
-    RegistrationView(
-        viewModel: AuthViewModel(),
-        path: .constant([])
-    )
-}
-
 
 #Preview {
     RegistrationView(

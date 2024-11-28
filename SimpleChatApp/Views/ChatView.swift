@@ -9,9 +9,8 @@ import SwiftUI
 struct ChatView: View {
     @StateObject private var viewModel: ChatViewModel
     let user: User
-    let chatId: String  // The chat ID needed for fetching and sending messages.
-    @Environment(\.dismiss) private var dismiss 
-
+    let chatId: String
+    
     init(user: User, chatId: String) {
         self.user = user
         self.chatId = chatId
@@ -20,38 +19,25 @@ struct ChatView: View {
     
     var body: some View {
         VStack {
-            
-            Button(action: {
-                dismiss() // Navigate back to Inbox
-            }) {
-                Image(systemName: "chevron.backward.circle.fill")
-                    .font(.title2)
-                    .foregroundColor(.blue)
-                Spacer()
-                
-                }
-                Spacer()
-            // to set the selected user image at the top of the page
-            if let profileImageUrl = user.profileImageURL {
-                if let url = URL(string: profileImageUrl) {
+            // User profile section
+            if let profileImageUrl = user.profileImageURL, let url = URL(string: profileImageUrl) {
                 AsyncImage(url: url) { phase in
                     switch phase {
-                   case .empty:
-                    ProgressView()
+                    case .empty:
+                        ProgressView()
                     case .success(let image):
-                    image.resizable().scaledToFill()
+                        image.resizable().scaledToFill()
                     case .failure:
-                    Image(systemName: "person.crop.circle.fill")
-                         .resizable()
-                        .background(Color.gray.opacity(0.2))
-                        .scaledToFill()
-                        @unknown default:
-                            ProgressView()
-                        }
+                        Image(systemName: "person.crop.circle.fill")
+                            .resizable()
+                            .scaledToFill()
+                    @unknown default:
+                        ProgressView()
                     }
-                    .frame(width: 100, height: 100)
-                    .clipShape(Circle())
                 }
+                .frame(width: 100, height: 100)
+                .clipShape(Circle())
+
                 VStack(spacing: 4) {
                     Text(user.name)
                         .font(.title)
@@ -61,8 +47,9 @@ struct ChatView: View {
                         .font(.footnote)
                         .foregroundColor(.gray)
                 }
+                .padding(.bottom)
             }
-            
+
             // Messages View
             ScrollView {
                 VStack {
@@ -90,8 +77,8 @@ struct ChatView: View {
                 }
                 .padding()
             }
+
             
-            // Message Input View
             Spacer()
             
             ZStack(alignment: .trailing) {
@@ -112,8 +99,8 @@ struct ChatView: View {
             }
             .padding()
         }
-        .navigationTitle("")
-        .navigationBarHidden(true)
+        .navigationTitle(user.name)
+        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             viewModel.fetchMessages(forChat: chatId)
         }

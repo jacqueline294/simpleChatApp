@@ -52,7 +52,7 @@ class InboxViewModel: ObservableObject {
         }
     }
 
-    // create a chat ID for the current user and the selected user
+    // Create or fetch an existing chat ID for the current user and the selected user
     func getOrCreateChatId(with userId: String, completion: @escaping (String?) -> Void) {
         guard let currentUserId = Auth.auth().currentUser?.uid else {
             self.errorMessage = "Failed to get current user."
@@ -60,13 +60,14 @@ class InboxViewModel: ObservableObject {
             return
         }
 
-        // Check if a chat already exists
         let chatsRef = db.collection("chats")
+        
+        // Query for chats that include both users
         chatsRef
             .whereField("participants", arrayContains: currentUserId)
-            .getDocuments { snapshot, error in
+            .getDocuments { [weak self] snapshot, error in
                 if let error = error {
-                    self.errorMessage = "Failed to fetch chats: \(error.localizedDescription)"
+                    self?.errorMessage = "Failed to fetch chats: \(error.localizedDescription)"
                     completion(nil)
                     return
                 }
@@ -85,9 +86,9 @@ class InboxViewModel: ObservableObject {
                         "participants": [currentUserId, userId],
                         "created": Timestamp(date: Date())
                     ]
-                    newChatRef.setData(chatData) { error in
+                    newChatRef.setData(chatData) { [weak self] error in
                         if let error = error {
-                            self.errorMessage = "Failed to create chat: \(error.localizedDescription)"
+                            self?.errorMessage = "Failed to create chat: \(error.localizedDescription)"
                             completion(nil)
                         } else {
                             completion(newChatRef.documentID)

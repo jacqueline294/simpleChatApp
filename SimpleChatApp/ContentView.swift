@@ -10,30 +10,32 @@ import FirebaseAuth
 
 struct ContentView: View {
     @StateObject private var viewModel = AuthViewModel()
-    @State private var path: [Destination] = [] // manages navigation in the app 
+    @State private var path: [Destination] = [] // Manages navigation in the app
+
     var body: some View {
         NavigationStack(path: $path) {
-            Group {
-                //if the user is not authenicated it shows registrationView else profile
+            VStack {
                 if viewModel.user == nil {
-                    RegistrationView(viewModel: viewModel, path: $path)
+                    RegistrationView(viewModel: viewModel, path: $path) // Make sure RegistrationView accepts Binding<[Destination]>
                 } else {
-                    ProfileView(authViewModel: viewModel, path: $path)
+                    InboxView(viewModel: viewModel, path: $path) // Make sure InboxView also accepts Binding<[Destination]>
                 }
             }
             .navigationDestination(for: Destination.self) { destination in
                 switch destination.type {
-                case .inbox:
-                    InboxView(path: $path)
                 case .chat(let user, let chatId):
                     ChatView(user: user, chatId: chatId)
                 case .login:
-                    LoginView(viewModel: viewModel, path: 
+                    LoginView(viewModel: viewModel, path: $path)
+                case .inbox:
+                    InboxView(viewModel: viewModel, path: $path) 
+                case .profile:
+                    ProfileView(authViewModel: viewModel, path: $path)
+                @unknown default:
+                    Text("Unknown Destination")
                 }
             }
-
         }
-        // Set up an authentication listener when the view appears
         .onAppear {
             viewModel.setupAuthListener()
         }
