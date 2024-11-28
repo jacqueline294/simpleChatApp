@@ -13,56 +13,61 @@ struct InboxView: View {
     @Binding var path: [Destination]
 
     var body: some View {
-        NavigationStack(path: $path) {
-            VStack {
-                List(inboxViewModel.users) { user in
-                    Button(action: {
-                        inboxViewModel.getOrCreateChatId(with: user.id) { chatId in
-                            if let chatId = chatId {
-                                DispatchQueue.main.async {
-                                    // Append chat destination to path
-                                    path.append(Destination(id: UUID(), type: .chat(user, chatId)))
-                                }
+        VStack {
+            // Title for the Inbox
+            Text("Inbox")
+                .font(.largeTitle)
+                .bold()
+                .padding()
+
+            // List of Users (Scrollable)
+            List(inboxViewModel.users) { user in
+                Button(action: {
+                    inboxViewModel.getOrCreateChatId(with: user.id) { chatId in
+                        if let chatId = chatId {
+                            DispatchQueue.main.async {
+                                // Append chat destination to path
+                                path.append(Destination(id: UUID(), type: .chat(user, chatId)))
                             }
                         }
-                    }) {
-                        HStack {
-                            if let profileImageUrl = user.profileImageURL, let url = URL(string: profileImageUrl) {
-                                AsyncImage(url: url) { phase in
-                                    switch phase {
-                                    case .empty:
-                                        ProgressView()
-                                            .frame(width: 50, height: 50)
-                                    case .success(let image):
-                                        image.resizable()
-                                            .scaledToFill()
-                                            .frame(width: 50, height: 50)
-                                            .clipShape(Circle())
-                                    case .failure:
-                                        Image(systemName: "person.crop.circle.fill")
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(width: 50, height: 50)
-                                            .clipShape(Circle())
-                                    @unknown default:
-                                        ProgressView()
-                                            .frame(width: 50, height: 50)
-                                    }
+                    }
+                }) {
+                    HStack {
+                        if let profileImageUrl = user.profileImageURL, let url = URL(string: profileImageUrl) {
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .empty:
+                                    ProgressView()
+                                        .frame(width: 50, height: 50)
+                                case .success(let image):
+                                    image.resizable()
+                                        .scaledToFill()
+                                        .frame(width: 50, height: 50)
+                                        .clipShape(Circle())
+                                case .failure:
+                                    Image(systemName: "person.crop.circle.fill")
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 50, height: 50)
+                                        .clipShape(Circle())
+                                @unknown default:
+                                    ProgressView()
+                                        .frame(width: 50, height: 50)
                                 }
-                            } else {
-                                Image(systemName: "person.crop.circle.fill")
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 50, height: 50)
-                                    .clipShape(Circle())
                             }
-                            VStack(alignment: .leading) {
-                                Text(user.name)
-                                    .font(.headline)
-                                Text(user.email)
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                            }
+                        } else {
+                            Image(systemName: "person.crop.circle.fill")
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 50, height: 50)
+                                .clipShape(Circle())
+                        }
+                        VStack(alignment: .leading) {
+                            Text(user.name)
+                                .font(.headline)
+                            Text(user.email)
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
                         }
                     }
                 }
@@ -75,7 +80,7 @@ struct InboxView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: {
-                        path.append(Destination(id: UUID(), type: .profile)) // Navigate to profile
+                        path.append(Destination(id: UUID(), type: .profile))
                     }) {
                         Text("Profile")
                             .foregroundColor(.blue)

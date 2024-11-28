@@ -8,9 +8,9 @@
 import SwiftUI
 
 struct ProfileView: View {
-    @ObservedObject var authViewModel: AuthViewModel // Handles logout and user state
-    @StateObject private var profileViewModel = ProfileViewModel() // Manages profile data
-    @Binding var path: [Destination] // Use binding to update the main navigation stack
+    @EnvironmentObject var authViewModel: AuthViewModel  // Use EnvironmentObject for shared user state
+    @StateObject private var profileViewModel = ProfileViewModel()  // Manages profile data locally
+    @Binding var path: [Destination]  // Binding to update the main navigation stack
 
     var body: some View {
         VStack(spacing: 20) {
@@ -49,6 +49,7 @@ struct ProfileView: View {
             // Logout Button
             Button("Logout") {
                 authViewModel.logout()
+                path = []  
             }
             .foregroundColor(.red)
         }
@@ -61,8 +62,8 @@ struct ProfileView: View {
 
 struct ProfileView_Previews: PreviewProvider {
     static var previews: some View {
-        ProfileView(authViewModel: AuthViewModel(), path: .constant([]))
+        ProfileView(path: .constant([]))
+            .environmentObject(AuthViewModel())  
     }
 }
-
 

@@ -44,7 +44,7 @@ struct LoginView: View {
                 viewModel.login(email: email, password: password) { success, error in
                     if success {
                         // Navigate to Profile after successful login
-                        path.append(Destination(id: UUID(), type: .inbox))
+                        path.append(Destination(id: UUID(), type: .profile))
                     } else {
                         errorMessage = error ?? "An unknown error occurred."
                     }

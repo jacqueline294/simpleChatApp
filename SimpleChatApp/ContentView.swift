@@ -6,19 +6,20 @@
 //
 
 import SwiftUI
-import FirebaseAuth
 
 struct ContentView: View {
-    @StateObject private var viewModel = AuthViewModel()
-    @State private var path: [Destination] = [] // Manages navigation in the app
+    @StateObject private var viewModel = AuthViewModel()  // Initialize AuthViewModel
+    @State private var path: [Destination] = []  // Manages navigation in the app
 
     var body: some View {
         NavigationStack(path: $path) {
             VStack {
                 if viewModel.user == nil {
-                    RegistrationView(viewModel: viewModel, path: $path) // Make sure RegistrationView accepts Binding<[Destination]>
+                    // Show registration or login view if the user is not logged in
+                    RegistrationView(viewModel: viewModel, path: $path)
                 } else {
-                    InboxView(viewModel: viewModel, path: $path) // Make sure InboxView also accepts Binding<[Destination]>
+                    // Show the inbox when the user is logged in
+                    InboxView(viewModel: viewModel, path: $path)
                 }
             }
             .navigationDestination(for: Destination.self) { destination in
@@ -28,9 +29,10 @@ struct ContentView: View {
                 case .login:
                     LoginView(viewModel: viewModel, path: $path)
                 case .inbox:
-                    InboxView(viewModel: viewModel, path: $path) 
+                    InboxView(viewModel: viewModel, path: $path)
                 case .profile:
-                    ProfileView(authViewModel: viewModel, path: $path)
+                    ProfileView(path: $path)
+                        .environmentObject(viewModel) // Pass viewModel as an environment object
                 @unknown default:
                     Text("Unknown Destination")
                 }
@@ -39,8 +41,10 @@ struct ContentView: View {
         .onAppear {
             viewModel.setupAuthListener()
         }
+        .environmentObject(viewModel)  // Provide viewModel to all child views
     }
 }
+
 
 #Preview {
     ContentView()

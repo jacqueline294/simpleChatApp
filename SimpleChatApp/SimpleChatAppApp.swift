@@ -19,6 +19,7 @@ struct SimpleChatAppApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(AuthViewModel())
         }
     }
 }
