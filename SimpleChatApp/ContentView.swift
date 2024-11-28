@@ -25,11 +25,13 @@ struct ContentView: View {
                 switch destination.type {
                 case .inbox:
                     InboxView(path: $path)
-                    // navigates to chatview with selected user and chatId
                 case .chat(let user, let chatId):
                     ChatView(user: user, chatId: chatId)
+                case .login:
+                    LoginView(viewModel: viewModel, path: 
                 }
             }
+
         }
         // Set up an authentication listener when the view appears
         .onAppear {

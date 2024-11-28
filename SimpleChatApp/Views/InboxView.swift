@@ -44,6 +44,7 @@ struct InboxView: View {
                     case .failure:
                     Image(systemName: "person.crop.circle.fill")
                         .resizable()
+                        .background(Color.gray.opacity(0.2))
                         .scaledToFill()
                 @unknown default:
                     ProgressView()

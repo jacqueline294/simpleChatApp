@@ -14,6 +14,7 @@ struct Destination: Hashable {
 
     enum DestinationType: Hashable {
         case inbox
-        case chat(User, String) // User and chatId
+        case chat(User, String)// User and chatId
+        case login
     }
 }

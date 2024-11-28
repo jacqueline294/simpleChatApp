@@ -74,7 +74,7 @@ struct RegistrationView: View {
 
             // Navigate to Login View
             Button(action: {
-                path.append(Destination(id: UUID(), type: .inbox)) // Append login destination using Destination struct
+                path.append(Destination(id: UUID(), type:.inbox)) 
             }) {
                 Text("Already have an account? Log In")
                     .foregroundColor(.blue)

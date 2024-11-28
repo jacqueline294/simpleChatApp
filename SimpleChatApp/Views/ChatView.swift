@@ -34,16 +34,17 @@ struct ChatView: View {
             // to set the selected user image at the top of the page
             if let profileImageUrl = user.profileImageURL {
                 if let url = URL(string: profileImageUrl) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .empty:
-                            ProgressView()
-                        case .success(let image):
-                            image.resizable().scaledToFill()
-                        case .failure:
-                            Image(systemName: "person.crop.circle.fill")
-                                .resizable()
-                                .scaledToFill()
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                   case .empty:
+                    ProgressView()
+                    case .success(let image):
+                    image.resizable().scaledToFill()
+                    case .failure:
+                    Image(systemName: "person.crop.circle.fill")
+                         .resizable()
+                        .background(Color.gray.opacity(0.2))
+                        .scaledToFill()
                         @unknown default:
                             ProgressView()
                         }
