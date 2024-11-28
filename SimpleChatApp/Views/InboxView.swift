@@ -11,8 +11,7 @@ struct InboxView: View {
     @ObservedObject var viewModel: AuthViewModel
     @StateObject private var inboxViewModel = InboxViewModel()
     @Binding var path: [Destination]
-    @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         NavigationStack(path: $path) {
             VStack {
@@ -23,7 +22,6 @@ struct InboxView: View {
                                 DispatchQueue.main.async {
                                     // Append chat destination to path
                                     path.append(Destination(id: UUID(), type: .chat(user, chatId)))
-                                    
                                 }
                             }
                         }
@@ -71,6 +69,18 @@ struct InboxView: View {
             }
             .onAppear {
                 inboxViewModel.fetchUsers()
+            }
+            .navigationTitle("Inbox")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        path.append(Destination(id: UUID(), type: .profile)) // Navigate to profile
+                    }) {
+                        Text("Profile")
+                            .foregroundColor(.blue)
+                    }
+                }
             }
         }
     }

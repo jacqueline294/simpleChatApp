@@ -43,8 +43,8 @@ struct LoginView: View {
             Button(action: {
                 viewModel.login(email: email, password: password) { success, error in
                     if success {
-                        // Append a new Destination to navigate to Profile
-                        path.append(Destination(id: UUID(), type: .profile))
+                        // Navigate to Profile after successful login
+                        path.append(Destination(id: UUID(), type: .inbox))
                     } else {
                         errorMessage = error ?? "An unknown error occurred."
                     }
