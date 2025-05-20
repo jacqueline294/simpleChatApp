@@ -10,16 +10,20 @@ struct ChatView: View {
     @StateObject private var viewModel: ChatViewModel
     let user: User
     let chatId: String
-    
+
+    // ✅ Image sending state
+    @State private var showingImagePicker = false
+    @State private var selectedImage: UIImage?
+
     init(user: User, chatId: String) {
         self.user = user
         self.chatId = chatId
         _viewModel = StateObject(wrappedValue: ChatViewModel())
     }
-    
+
     var body: some View {
         VStack {
-            // User profile section
+            // Profile header
             if let profileImageUrl = user.profileImageURL, let url = URL(string: profileImageUrl) {
                 AsyncImage(url: url) { phase in
                     switch phase {
@@ -42,7 +46,7 @@ struct ChatView: View {
                     Text(user.name)
                         .font(.title)
                         .fontWeight(.semibold)
-                    
+
                     Text("Messenger")
                         .font(.footnote)
                         .foregroundColor(.gray)
@@ -50,7 +54,7 @@ struct ChatView: View {
                 .padding(.bottom)
             }
 
-            // Messages View
+            // Messages list
             ScrollView {
                 VStack {
                     ForEach(viewModel.messages) { message in
@@ -78,38 +82,45 @@ struct ChatView: View {
                 .padding()
             }
 
-            
             Spacer()
-            
-            ZStack(alignment: .trailing) {
+
+            // Text input + Image button
+            HStack(spacing: 10) {
+                // 📷 image picker button
+                Button(action: {
+                    showingImagePicker = true
+                }) {
+                    Image(systemName: "photo.on.rectangle")
+                        .imageScale(.large)
+                }
+
+                // TextField
                 TextField("Message", text: $viewModel.newMessage, axis: .vertical)
                     .padding(12)
-                    .padding(.trailing, 40)
                     .background(Color(.systemGroupedBackground))
                     .clipShape(Capsule())
                     .font(.subheadline)
-                
+
+                // Send button
                 Button(action: {
                     viewModel.sendMessage(toChat: chatId)
                 }) {
                     Text("Send")
                         .fontWeight(.semibold)
                 }
-                .padding(.horizontal)
             }
             .padding()
+        }
+        .sheet(isPresented: $showingImagePicker) {
+            ImagePicker(selectedImage: $selectedImage) { image in
+                viewModel.sendImage(image, to: chatId)
+                selectedImage = nil
+            }
         }
         .navigationTitle(user.name)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             viewModel.fetchMessages(forChat: chatId)
         }
-    }
-}
-
-struct ChatView_Previews: PreviewProvider {
-    static var previews: some View {
-        let dummyUser = User(id: "123", name: "John Doe", email: "john@example.com", profileImageURL: nil)
-        ChatView(user: dummyUser, chatId: "dummyChatId")
     }
 }
