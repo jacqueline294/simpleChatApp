@@ -15,49 +15,72 @@ struct LoginView: View {
     @State private var errorMessage: String = ""
 
     var body: some View {
-        VStack(spacing: 20) {
-            
-            Image("Talk")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 300, height: 300)
-                .padding(.bottom)
-           
-            Text("Welcome Back")
-                .font(.largeTitle)
-                .fontWeight(.bold)
+        ZStack {
+            // 🌈 Background gradient
+            LinearGradient(
+                colors: [Color.mint.opacity(0.15), Color.teal.opacity(0.2)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
 
-            TextField("Email", text: $email)
-                .keyboardType(.emailAddress)
-                .autocapitalization(.none)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
+            VStack(spacing: 20) {
+                // 🖼 Logo from assets named "Chat Link"
+                Image("Chat Link")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 140, height: 140)
+                    .padding(.top, 20)
 
-            SecureField("Password", text: $password)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
+                // 🟦 App name
+                Text("ChitChat")
+                    .font(.largeTitle)
+                    .fontWeight(.heavy)
+                    .foregroundColor(.blue)
 
-            if !errorMessage.isEmpty {
-                Text(errorMessage)
-                    .foregroundColor(.red)
-            }
+                Text("Welcome Back")
+                    .font(.title2)
+                    .foregroundColor(.gray)
+                    .padding(.bottom, 10)
 
-            Button(action: {
-                viewModel.login(email: email, password: password) { success, error in
-                    if success {
-                        // Navigate to Profile after successful login
-                        path.append(Destination(id: UUID(), type: .profile))
-                    } else {
-                        errorMessage = error ?? "An unknown error occurred."
-                    }
+                // 📨 Email input
+                TextField("Email", text: $email)
+                    .keyboardType(.emailAddress)
+                    .autocapitalization(.none)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                // 🔒 Password input
+                SecureField("Password", text: $password)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                // ❌ Error message
+                if !errorMessage.isEmpty {
+                    Text(errorMessage)
+                        .foregroundColor(.red)
                 }
-            }) {
-                Text("Login")
-                    .foregroundColor(.white)
-                    .padding()
-                    .background(Color.blue)
-                    .cornerRadius(8)
+
+                // ✅ Login button
+                Button(action: {
+                    viewModel.login(email: email, password: password) { success, error in
+                        if success {
+                            path.append(Destination(id: UUID(), type: .profile))
+                        } else {
+                            errorMessage = error ?? "An unknown error occurred."
+                        }
+                    }
+                }) {
+                    Text("Login")
+                        .foregroundColor(.white)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.blue)
+                        .cornerRadius(8)
+                }
+
+                Spacer()
             }
+            .padding()
         }
-        .padding()
     }
 }
 

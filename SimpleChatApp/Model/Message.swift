@@ -1,11 +1,11 @@
-
-
-
-
+//
+//  Message.swift
+//  SimpleChatApp
+//
+//  Created by jacqueline Ngigi on 2025-05-19.
+//
 
 import Foundation
-
-
 
 struct Message: Identifiable, Codable, Equatable {
     let id: String

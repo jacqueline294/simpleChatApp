@@ -14,93 +14,114 @@ struct InboxView: View {
     @Binding var path: [Destination]
 
     var body: some View {
-        VStack {
-            // Title for the Inbox
-            Text("Inbox")
-                .font(.largeTitle)
-                .bold()
-                .padding()
+        ZStack {
+            //  Background gradient
+            LinearGradient(
+                colors: [Color.mint.opacity(0.1), Color.teal.opacity(0.2)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
 
-            // List of Users (Scrollable)
-            List(inboxViewModel.users) { user in
-                Button(action: {
-                    inboxViewModel.getOrCreateChatId(with: user.id) { chatId in
-                        if let chatId = chatId {
-                            DispatchQueue.main.async {
-                                path.append(Destination(id: UUID(), type: .chat(user, chatId)))
-                            }
-                        }
+            VStack(spacing: 0) {
+                //  Header
+                HStack {
+                    Text("Inbox")
+                        .font(.largeTitle)
+                        .bold()
+                        .foregroundColor(.blue)
+                    Spacer()
+                    Button {
+                        path.append(Destination(id: UUID(), type: .groupCreation))
+                    } label: {
+                        Image(systemName: "person.3.fill")
+                            .foregroundColor(.blue)
+                            .imageScale(.large)
                     }
-                }) {
-                    HStack {
-                        if let profileImageUrl = user.profileImageURL,
-                           let url = URL(string: profileImageUrl) {
-                            AsyncImage(url: url) { phase in
-                                switch phase {
-                                case .empty:
-                                    ProgressView()
-                                        .frame(width: 50, height: 50)
-                                case .success(let image):
-                                    image.resizable()
-                                        .scaledToFill()
-                                        .frame(width: 50, height: 50)
-                                        .clipShape(Circle())
-                                case .failure:
-                                    Image(systemName: "person.crop.circle.fill")
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: 50, height: 50)
-                                        .clipShape(Circle())
-                                @unknown default:
-                                    ProgressView()
-                                        .frame(width: 50, height: 50)
+                }
+                .padding(.horizontal)
+                .padding(.top)
+
+                // 🧑‍🤝‍🧑 User List
+                List {
+                    ForEach(inboxViewModel.users) { user in
+                        Button(action: {
+                            inboxViewModel.getOrCreateChatId(with: user.id) { chatId in
+                                if let chatId = chatId {
+                                    DispatchQueue.main.async {
+                                        path.append(Destination(id: UUID(), type: .chat(user, chatId)))
+                                    }
                                 }
                             }
-                        } else {
-                            Image(systemName: "person.crop.circle.fill")
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 50, height: 50)
-                                .clipShape(Circle())
-                        }
+                        }) {
+                            HStack(spacing: 16) {
+                                // Profile image
+                                if let urlString = user.profileImageURL, let url = URL(string: urlString) {
+                                    AsyncImage(url: url) { phase in
+                                        switch phase {
+                                        case .empty:
+                                            ProgressView()
+                                                .frame(width: 50, height: 50)
+                                        case .success(let image):
+                                            image.resizable()
+                                                .scaledToFill()
+                                                .frame(width: 50, height: 50)
+                                                .clipShape(Circle())
+                                        case .failure:
+                                            Image(systemName: "person.crop.circle.fill")
+                                                .resizable()
+                                                .frame(width: 50, height: 50)
+                                                .foregroundColor(.gray)
+                                        @unknown default:
+                                            EmptyView()
+                                        }
+                                    }
+                                } else {
+                                    Image(systemName: "person.crop.circle.fill")
+                                        .resizable()
+                                        .frame(width: 50, height: 50)
+                                        .foregroundColor(.gray)
+                                }
 
-                        VStack(alignment: .leading) {
-                            Text(user.name)
-                                .font(.headline)
-                            Text(user.email)
-                                .font(.subheadline)
-                                .foregroundColor(.gray)
+                                // User info
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(user.name)
+                                        .font(.headline)
+                                    Text(user.email)
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray)
+                                }
+
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(.gray)
+                            }
+                            .padding(.vertical, 8)
                         }
+                        .listRowBackground(Color.white.opacity(0.95))
+                        .cornerRadius(10)
+                        .shadow(color: .gray.opacity(0.1), radius: 1, x: 0, y: 1)
                     }
                 }
+                .listStyle(PlainListStyle())
             }
-            .onAppear {
-                inboxViewModel.fetchUsers()
-            }
-            .navigationTitle("Inbox")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        path.append(Destination(id: UUID(), type: .profile))
-                    }) {
+        }
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    path.append(Destination(id: UUID(), type: .profile))
+                } label: {
+                    HStack {
+                        Image(systemName: "person.crop.circle")
                         Text("Profile")
-                            .foregroundColor(.blue)
-                    }
-                }
-
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        path.append(Destination(id: UUID(), type: .groupCreation))
-                    }) {
-                        Image(systemName: "person.3.fill")
-                            .imageScale(.large)
-                            .foregroundColor(.blue)
-                            .accessibilityLabel("Start Group Chat")
                     }
                 }
             }
         }
+        .onAppear {
+            inboxViewModel.fetchUsers()
+        }
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

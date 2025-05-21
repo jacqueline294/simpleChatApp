@@ -8,41 +8,74 @@
 import SwiftUI
 import FirebaseFirestore
 
-
 struct GroupCreationView: View {
     @Environment(\.dismiss) var dismiss
-    @StateObject private var viewModel = InboxViewModel() // Reuse this to load users
+    @StateObject private var viewModel = InboxViewModel()
     @State private var selectedUserIds: Set<String> = []
     @State private var groupName: String = ""
     @Binding var path: [Destination]
 
     var body: some View {
-        VStack {
-            TextField("Group Name", text: $groupName)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
+        ZStack {
+            // 🌈 Background
+            LinearGradient(
+                colors: [Color.mint.opacity(0.1), Color.teal.opacity(0.2)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
 
-            List(viewModel.users) { user in
-                MultipleSelectionRow(user: user, isSelected: selectedUserIds.contains(user.id)) {
-                    if selectedUserIds.contains(user.id) {
-                        selectedUserIds.remove(user.id)
-                    } else {
-                        selectedUserIds.insert(user.id)
-                    }
+            VStack(spacing: 20) {
+                // 🧠 Title
+                Text("Create New Group")
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(.blue)
+
+                // ✏️ Group Name Field
+                HStack {
+                    Image(systemName: "person.3.fill")
+                        .foregroundColor(.blue)
+                    TextField("Enter Group Name", text: $groupName)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
                 }
-            }
+                .padding(.horizontal)
 
+                // 🧑‍🤝‍🧑 User Selection
+                List(viewModel.users) { user in
+                    MultipleSelectionRow(
+                        user: user,
+                        isSelected: selectedUserIds.contains(user.id)
+                    ) {
+                        if selectedUserIds.contains(user.id) {
+                            selectedUserIds.remove(user.id)
+                        } else {
+                            selectedUserIds.insert(user.id)
+                        }
+                    }
+                    .listRowBackground(Color.white)
+                }
+                .listStyle(.insetGrouped)
 
-            Button("Create Group") {
-                createGroup()
+                // ✅ Create Button
+                Button(action: createGroup) {
+                    Text("Create Group")
+                        .fontWeight(.semibold)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background((groupName.isEmpty || selectedUserIds.isEmpty) ? Color.gray : Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                }
+                .disabled(groupName.isEmpty || selectedUserIds.isEmpty)
+                .padding(.horizontal)
             }
-            .disabled(groupName.isEmpty || selectedUserIds.isEmpty)
-            .padding()
+            .padding(.top)
         }
-        .navigationTitle("New Group")
         .onAppear {
             viewModel.fetchUsers()
         }
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     private func createGroup() {
