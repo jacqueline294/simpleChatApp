@@ -12,132 +12,113 @@ import FirebaseStorage
 class ChatViewModel: ObservableObject {
     @Published var messages: [Message] = []
     @Published var newMessage: String = ""
-    @Published var errorMessage: String?
-
+    
     private let db = Firestore.firestore()
-
-    // Fetch messages for the specific chat room using the chatId
+    
+    // Fetch Messages
     func fetchMessages(forChat chatId: String) {
-        // Access the messages subcollection under the specific chat document
         db.collection("chats")
             .document(chatId)
             .collection("messages")
-            .order(by: "timestamp", descending: false)
-            .addSnapshotListener { querySnapshot, error in
+            .order(by: "timestamp")
+            .addSnapshotListener { snapshot, error in
                 if let error = error {
-                    self.errorMessage = error.localizedDescription
+                    print("❌ Error fetching messages: \(error.localizedDescription)")
                     return
                 }
-
-                guard let documents = querySnapshot?.documents else {
-                    self.errorMessage = "No messages found"
-                    return
-                }
-
-                // Map documents to Message objects
-                self.messages = documents.compactMap { queryDocumentSnapshot in
-                    try? queryDocumentSnapshot.data(as: Message.self)
-                }
+                
+                self.messages = snapshot?.documents.compactMap {
+                    try? $0.data(as: Message.self)
+                } ?? []
             }
     }
-
-    // Send a new message to the specific chat room using the chatId
+    
+    //  Send Text Message
     func sendMessage(toChat chatId: String) {
-        guard let userId = Auth.auth().currentUser?.uid else {
-            self.errorMessage = "User not authenticated"
-            return
-        }
-
-        let trimmedText = newMessage.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedText.isEmpty else { return }
-
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+        
+        let trimmed = newMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        
         let message = Message(
             id: UUID().uuidString,
-            text: trimmedText,
+            text: trimmed,
             senderId: userId,
             timestamp: Date(),
             imageUrl: nil,
-            groupId: chatId // reused as chatId
+            groupId: chatId // reuse groupId field for private chat
         )
-
+        
         do {
             try db.collection("chats")
                 .document(chatId)
                 .collection("messages")
                 .document(message.id)
                 .setData(from: message)
-            
-            // Clear text after sending
-            self.newMessage = ""
+            newMessage = ""
         } catch {
-            self.errorMessage = error.localizedDescription
+            print("❌ Failed to send message: \(error.localizedDescription)")
         }
     }
-
+    
+    //  Send Image Message
     func sendImage(_ image: UIImage, to chatId: String) {
         guard let userId = Auth.auth().currentUser?.uid else {
             print("❌ No authenticated user.")
             return
         }
-
-        // ✅ Step 1: Ensure the parent chat document exists
-        let chatRef = db.collection("chats").document(chatId)
-        chatRef.setData(["createdAt": FieldValue.serverTimestamp()], merge: true)
-
-        // ✅ Step 2: Prepare image
+        
+        print("📸 Image selected, preparing upload...")
+        
         let imageId = UUID().uuidString
         let ref = Storage.storage().reference().child("chatImages/\(chatId)/\(imageId).jpg")
-
+        
         guard let imageData = image.jpegData(compressionQuality: 0.8) else {
             print("❌ Failed to convert image to JPEG.")
             return
         }
-
-        print("📤 Uploading image for chat \(chatId)...")
-
-        // ✅ Step 3: Upload to Firebase Storage
-        ref.putData(imageData, metadata: nil) { _, error in
-            if let error = error {
-                print("❌ Upload failed: \(error.localizedDescription)")
-                return
-            }
-
+        
+        let uploadTask = ref.putData(imageData, metadata: nil)
+        
+        uploadTask.observe(.success) { _ in
+            print("✅ Image uploaded to chatImages/\(chatId)/\(imageId).jpg")
             ref.downloadURL { url, error in
-                if let error = error {
-                    print("❌ Failed to get download URL: \(error.localizedDescription)")
-                    return
-                }
-
                 guard let url = url else {
-                    print("❌ URL is nil.")
+                    print("❌ Failed to retrieve download URL.")
                     return
                 }
-
-                print("✅ Got image URL: \(url.absoluteString)")
-
-                let message = Message(
-                    id: UUID().uuidString,
-                    text: "",
-                    senderId: userId,
-                    timestamp: Date(),
-                    imageUrl: url.absoluteString,
-                    groupId: chatId // reused as chatId
-                )
-
-                do {
-                    try self.db.collection("chats")
-                        .document(chatId)
-                        .collection("messages")
-                        .document(message.id)
-                        .setData(from: message)
-
-                    print("✅ Image message saved to Firestore.")
-                } catch {
-                    print("❌ Firestore save failed: \(error.localizedDescription)")
-                }
+                
+                self.saveImageMessage(imageUrl: url.absoluteString, to: chatId, userId: userId)
+            }
+        }
+        
+        uploadTask.observe(.failure) { snapshot in
+            if let error = snapshot.error {
+                print("❌ Upload error: \(error.localizedDescription)")
             }
         }
     }
-
-
+    
+    private func saveImageMessage(imageUrl: String, to chatId: String, userId: String) {
+        let message = Message(
+            id: UUID().uuidString,
+            text: "",
+            senderId: userId,
+            timestamp: Date(),
+            imageUrl: imageUrl,
+            groupId: chatId
+        )
+        
+        do {
+            try Firestore.firestore()
+                .collection("chats")
+                .document(chatId)
+                .collection("messages")
+                .document(message.id)
+                .setData(from: message)
+            print("✅ Chat image message saved to Firestore.")
+        } catch {
+            print("❌ Firestore save error: \(error.localizedDescription)")
+        }
+    }
 }

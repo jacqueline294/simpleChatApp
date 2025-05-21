@@ -7,6 +7,7 @@
 
 import SwiftUI
 import FirebaseFirestore
+import FirebaseAuth
 
 struct GroupCreationView: View {
     @Environment(\.dismiss) var dismiss
@@ -26,13 +27,12 @@ struct GroupCreationView: View {
             .ignoresSafeArea()
 
             VStack(spacing: 20) {
-                // 🧠 Title
                 Text("Create New Group")
                     .font(.title)
                     .fontWeight(.bold)
                     .foregroundColor(.blue)
 
-                // ✏️ Group Name Field
+                // Group Name Input
                 HStack {
                     Image(systemName: "person.3.fill")
                         .foregroundColor(.blue)
@@ -41,7 +41,7 @@ struct GroupCreationView: View {
                 }
                 .padding(.horizontal)
 
-                // 🧑‍🤝‍🧑 User Selection
+                // User Selection
                 List(viewModel.users) { user in
                     MultipleSelectionRow(
                         user: user,
@@ -57,7 +57,7 @@ struct GroupCreationView: View {
                 }
                 .listStyle(.insetGrouped)
 
-                // ✅ Create Button
+                // Create Group Button
                 Button(action: createGroup) {
                     Text("Create Group")
                         .fontWeight(.semibold)
@@ -79,16 +79,54 @@ struct GroupCreationView: View {
     }
 
     private func createGroup() {
-        let groupId = UUID().uuidString
-        let group = Group(id: groupId, name: groupName, members: Array(selectedUserIds))
+        guard let currentUserId = Auth.auth().currentUser?.uid else {
+            print("❌ No authenticated user.")
+            return
+        }
 
+        var members = Array(selectedUserIds)
+        if !members.contains(currentUserId) {
+            members.append(currentUserId)
+        }
+
+        let groupId = UUID().uuidString
+        let group = Group(id: groupId, name: groupName, members: members)
         let db = Firestore.firestore()
+
         do {
-            try db.collection("groups").document(groupId).setData(from: group)
-            path.append(Destination(id: UUID(), type: .groupChat(group)))
-            dismiss()
+            try db.collection("groups").document(groupId).setData(from: group) { error in
+                if let error = error {
+                    print("❌ Failed to create group: \(error.localizedDescription)")
+                    return
+                }
+
+                // 🚨 Send a placeholder message to trigger listener setup
+                let placeholderMessage: [String: Any] = [
+                    "id": UUID().uuidString,
+                    "text": "Welcome to \(group.name) 👋",
+                    "senderId": currentUserId,
+                    "timestamp": Timestamp(),
+                    "imageUrl": NSNull(),
+                    "groupId": groupId
+                ]
+
+                db.collection("groups")
+                    .document(groupId)
+                    .collection("messages")
+                    .addDocument(data: placeholderMessage) { error in
+                        if let error = error {
+                            print("❌ Failed to write initial message: \(error.localizedDescription)")
+                            return
+                        }
+
+                        // ✅ Navigate to GroupChat after initial message is saved
+                        path.append(Destination(id: UUID(), type: .groupChat(group)))
+                        dismiss()
+                    }
+            }
         } catch {
-            print("❌ Failed to create group:", error.localizedDescription)
+            print("❌ Error creating group: \(error.localizedDescription)")
         }
     }
+
 }

@@ -14,18 +14,25 @@ struct GroupChatView: View {
     @State private var newMessage = ""
     @State private var showingImagePicker = false
     @State private var selectedImage: UIImage?
+    @State private var showError = false
+    @State private var errorText = ""
 
     var body: some View {
         ZStack {
-            // 🌈 Background gradient
+            // 🌈 Gradient background
             LinearGradient(colors: [Color.cyan.opacity(0.1), Color.indigo.opacity(0.15)],
                            startPoint: .topLeading,
                            endPoint: .bottomTrailing)
                 .ignoresSafeArea()
 
             VStack(spacing: 10) {
-                // 🧾 Messages section
-                if viewModel.messages.isEmpty {
+                // 🔄 Loading indicator
+                if viewModel.isLoading {
+                    Spacer()
+                    ProgressView("Loading messages...")
+                        .padding()
+                    Spacer()
+                } else if viewModel.messages.isEmpty {
                     Spacer()
                     Text("No messages yet")
                         .foregroundColor(.gray)
@@ -40,6 +47,7 @@ struct GroupChatView: View {
                                     }
 
                                     VStack(alignment: .leading, spacing: 6) {
+                                        // 🖼 Image
                                         if let imageUrl = message.imageUrl,
                                            let url = URL(string: imageUrl) {
                                             AsyncImage(url: url) { phase in
@@ -63,6 +71,7 @@ struct GroupChatView: View {
                                             }
                                         }
 
+                                        // 💬 Text
                                         if !message.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                                             Text(message.text)
                                                 .padding(10)
@@ -83,8 +92,9 @@ struct GroupChatView: View {
                     }
                 }
 
-                // 🧾 Input area
+                // 💬 Message input
                 HStack(spacing: 12) {
+                    // 📷 Image button
                     Button {
                         showingImagePicker = true
                     } label: {
@@ -93,16 +103,24 @@ struct GroupChatView: View {
                             .imageScale(.large)
                     }
 
+                    // 📝 TextField
                     TextField("Message", text: $newMessage)
                         .padding(10)
                         .background(Color(.systemGray6))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                         .font(.subheadline)
 
-                    Button(action: {
+                    // 📨 Send
+                    Button {
+                        if newMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            errorText = "Cannot send empty message."
+                            showError = true
+                            return
+                        }
+
                         viewModel.sendMessage(newMessage, groupId: groupId, senderId: viewModel.currentUserId)
                         newMessage = ""
-                    }) {
+                    } label: {
                         Image(systemName: "paperplane.fill")
                             .foregroundColor(.white)
                             .padding(10)
@@ -115,17 +133,24 @@ struct GroupChatView: View {
         }
         .sheet(isPresented: $showingImagePicker) {
             ImagePicker(selectedImage: $selectedImage) { image in
-                viewModel.sendImage(image, to: groupId)
-                selectedImage = nil
+                if let image = selectedImage {
+                    viewModel.sendImage(image, to: groupId)
+                    selectedImage = nil
+                }
             }
         }
+        .alert("Error", isPresented: $showError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorText)
+        }
+        .navigationTitle("Group Chat")
+        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             viewModel.fetchMessages(for: groupId)
         }
         .onDisappear {
             viewModel.detachListener()
         }
-        .navigationTitle("Group Chat")
-        .navigationBarTitleDisplayMode(.inline)
     }
 }

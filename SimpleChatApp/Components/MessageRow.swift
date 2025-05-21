@@ -12,12 +12,12 @@ struct MessageRow: View {
     let isCurrentUser: Bool
 
     var body: some View {
-        HStack {
+        HStack(alignment: .bottom) {
             if isCurrentUser { Spacer() }
 
             VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 8) {
-                // 🖼 Render image if available
-                if let urlString = message.imageUrl, let url = URL(string: urlString) {
+                // Display image if present
+                if let urlStr = message.imageUrl, let url = URL(string: urlStr) {
                     AsyncImage(url: url) { phase in
                         switch phase {
                         case .empty:
@@ -41,13 +41,13 @@ struct MessageRow: View {
                     }
                 }
 
-                // ✏️ Render text if not empty
+                // Display text if not empty
                 if !message.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Text(message.text)
                         .padding(10)
-                        .background(isCurrentUser ? Color.blue : Color(.systemGray5))
+                        .background(isCurrentUser ? Color.blue : Color.gray.opacity(0.2))
                         .foregroundColor(isCurrentUser ? .white : .black)
-                        .cornerRadius(8)
+                        .cornerRadius(10)
                         .frame(maxWidth: 250, alignment: isCurrentUser ? .trailing : .leading)
                 }
             }
@@ -55,5 +55,6 @@ struct MessageRow: View {
             if !isCurrentUser { Spacer() }
         }
         .padding(.horizontal)
+        .padding(.vertical, 4)
     }
 }

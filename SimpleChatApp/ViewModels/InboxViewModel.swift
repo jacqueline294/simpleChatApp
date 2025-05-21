@@ -10,20 +10,20 @@ import FirebaseFirestore
 import FirebaseAuth
 
 class InboxViewModel: ObservableObject {
-    @Published var users: [User] = [] // List of users
+    @Published var users: [User] = []
+    @Published var groups: [Group] = []
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
-    @Published var selectedChatId: String? // The selected chat ID for navigation purposes
+    @Published var selectedChatId: String?
 
     private let db = Firestore.firestore()
 
-    // Fetch all users except the current user
+    // Fetch Users
     func fetchUsers() {
         guard let currentUserId = Auth.auth().currentUser?.uid else {
             self.errorMessage = "Failed to get current user."
             return
         }
-        print("Fetching users from Firestore...")
 
         isLoading = true
         db.collection("users").getDocuments { [weak self] snapshot, error in
@@ -42,17 +42,15 @@ class InboxViewModel: ObservableObject {
                           id != currentUserId else {
                         return nil
                     }
-                    
-                    // Retrieve optional profileImageURL
-                    let profileImageURL = data["profileImageURL"] as? String
 
+                    let profileImageURL = data["profileImageURL"] as? String
                     return User(id: id, name: name, email: email, profileImageURL: profileImageURL)
                 } ?? []
             }
         }
     }
 
-    // Create or fetch an existing chat ID for the current user and the selected user
+    //  - Create or Get Chat ID
     func getOrCreateChatId(with userId: String, completion: @escaping (String?) -> Void) {
         guard let currentUserId = Auth.auth().currentUser?.uid else {
             self.errorMessage = "Failed to get current user."
@@ -61,8 +59,6 @@ class InboxViewModel: ObservableObject {
         }
 
         let chatsRef = db.collection("chats")
-        
-        // Query for chats that include both users
         chatsRef
             .whereField("participants", arrayContains: currentUserId)
             .getDocuments { [weak self] snapshot, error in
@@ -72,21 +68,18 @@ class InboxViewModel: ObservableObject {
                     return
                 }
 
-                // Check if there's an existing chat that includes both users
                 if let document = snapshot?.documents.first(where: {
                     let participants = $0.data()["participants"] as? [String] ?? []
                     return participants.contains(userId)
                 }) {
-                    // Chat already exists, return its ID
                     completion(document.documentID)
                 } else {
-                    // Chat doesn't exist, create a new one
                     let newChatRef = chatsRef.document()
                     let chatData: [String: Any] = [
                         "participants": [currentUserId, userId],
                         "created": Timestamp(date: Date())
                     ]
-                    newChatRef.setData(chatData) { [weak self] error in
+                    newChatRef.setData(chatData) { error in
                         if let error = error {
                             self?.errorMessage = "Failed to create chat: \(error.localizedDescription)"
                             completion(nil)
@@ -96,5 +89,35 @@ class InboxViewModel: ObservableObject {
                     }
                 }
             }
+    }
+
+    //  Fetch Groups
+    func fetchGroups() {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+
+        db.collection("groups").getDocuments { [weak self] snapshot, error in
+            if let error = error {
+                print("❌ Error fetching groups: \(error)")
+                return
+            }
+
+            self?.groups = snapshot?.documents.compactMap {
+                try? $0.data(as: Group.self)
+            }.filter {
+                $0.members.contains(userId)
+            } ?? []
+        }
+    }
+
+    //  Delete Group
+    func deleteGroup(_ group: Group) {
+        db.collection("groups").document(group.id).delete { error in
+            if let error = error {
+                print("❌ Failed to delete group: \(error)")
+            } else {
+                print("✅ Group deleted")
+                self.fetchGroups()
+            }
+        }
     }
 }

@@ -15,6 +15,8 @@ struct ChatView: View {
 
     @State private var showingImagePicker = false
     @State private var selectedImage: UIImage?
+    @State private var errorText: String = ""
+    @State private var showError: Bool = false
 
     init(user: User, chatId: String) {
         self.user = user
@@ -24,102 +26,76 @@ struct ChatView: View {
 
     var body: some View {
         ZStack {
-            // 🌈 Soft background
-            LinearGradient(colors: [Color.mint.opacity(0.1), Color.teal.opacity(0.15)],
+            // 🌈 Background
+            LinearGradient(colors: [Color.teal.opacity(0.1), Color.indigo.opacity(0.15)],
                            startPoint: .topLeading,
                            endPoint: .bottomTrailing)
                 .ignoresSafeArea()
 
             VStack(spacing: 10) {
-                // 📌 Profile header
-                HStack(spacing: 12) {
-                    if let url = URL(string: user.profileImageURL ?? "") {
-                        AsyncImage(url: url) { phase in
-                            switch phase {
-                            case .empty:
-                                ProgressView()
-                            case .success(let image):
-                                image.resizable().scaledToFill()
-                            case .failure:
-                                Image(systemName: "person.crop.circle.fill")
-                                    .resizable()
-                                    .scaledToFill()
-                            @unknown default:
-                                ProgressView()
-                            }
-                        }
-                        .frame(width: 50, height: 50)
-                        .clipShape(Circle())
-                    }
-
-                    VStack(alignment: .leading) {
-                        Text(user.name)
-                            .font(.headline)
-                        Text("Online")
-                            .font(.caption)
-                            .foregroundColor(.green)
-                    }
-
-                    Spacer()
-                }
-                .padding(.horizontal)
-
-                Divider()
-
                 // 🧾 Messages
-                ScrollView {
-                    LazyVStack(spacing: 10) {
-                        ForEach(viewModel.messages) { message in
-                            HStack(alignment: .bottom) {
-                                if message.senderId == user.id {
-                                    Spacer()
-                                }
+                if viewModel.messages.isEmpty {
+                    Spacer()
+                    Text("Start chatting with \(user.name)")
+                        .foregroundColor(.gray)
+                    Spacer()
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 10) {
+                            ForEach(viewModel.messages) { message in
+                                HStack(alignment: .bottom) {
+                                    if message.senderId == Auth.auth().currentUser?.uid {
+                                        Spacer()
+                                    }
 
-                                VStack(alignment: .leading, spacing: 6) {
-                                    if let imageUrl = message.imageUrl,
-                                       let url = URL(string: imageUrl) {
-                                        AsyncImage(url: url) { phase in
-                                            switch phase {
-                                            case .empty:
-                                                ProgressView()
-                                            case .success(let image):
-                                                image
-                                                    .resizable()
-                                                    .scaledToFit()
-                                                    .frame(maxWidth: 200)
-                                                    .cornerRadius(10)
-                                            case .failure:
-                                                Image(systemName: "photo")
-                                                    .resizable()
-                                                    .scaledToFit()
-                                                    .frame(width: 200, height: 150)
-                                            @unknown default:
-                                                EmptyView()
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        // 🖼 Image if any
+                                        if let imageUrl = message.imageUrl,
+                                           let url = URL(string: imageUrl) {
+                                            AsyncImage(url: url) { phase in
+                                                switch phase {
+                                                case .empty:
+                                                    ProgressView()
+                                                case .success(let image):
+                                                    image
+                                                        .resizable()
+                                                        .scaledToFit()
+                                                        .frame(maxWidth: 200)
+                                                        .cornerRadius(10)
+                                                case .failure:
+                                                    Image(systemName: "photo")
+                                                        .resizable()
+                                                        .scaledToFit()
+                                                        .frame(width: 200, height: 150)
+                                                @unknown default:
+                                                    EmptyView()
+                                                }
                                             }
+                                        }
+
+                                        if !message.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                            Text(message.text)
+                                                .padding(10)
+                                                .background(message.senderId == Auth.auth().currentUser?.uid ? Color.blue : Color.gray.opacity(0.2))
+                                                .foregroundColor(message.senderId == Auth.auth().currentUser?.uid ? .white : .black)
+                                                .cornerRadius(12)
                                         }
                                     }
 
-                                    if !message.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                        Text(message.text)
-                                            .padding(10)
-                                            .background(message.senderId == user.id ? Color.blue : Color.gray.opacity(0.2))
-                                            .foregroundColor(message.senderId == user.id ? .white : .black)
-                                            .cornerRadius(12)
+                                    if message.senderId != Auth.auth().currentUser?.uid {
+                                        Spacer()
                                     }
                                 }
-
-                                if message.senderId != user.id {
-                                    Spacer()
-                                }
+                                .padding(.horizontal)
                             }
-                            .padding(.horizontal)
                         }
+                        .padding(.top)
                     }
-                    .padding(.top)
                 }
 
                 // 🧾 Input
                 HStack(spacing: 12) {
+                    // 📷 Image button
                     Button {
                         showingImagePicker = true
                     } label: {
@@ -128,15 +104,22 @@ struct ChatView: View {
                             .imageScale(.large)
                     }
 
+                    // ✏️ Text input
                     TextField("Type a message...", text: $viewModel.newMessage, axis: .vertical)
                         .padding(10)
                         .background(Color(.systemGray6))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                         .font(.subheadline)
 
-                    Button(action: {
-                        viewModel.sendMessage(toChat: chatId)
-                    }) {
+                    // 🚀 Send
+                    Button {
+                        if viewModel.newMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            errorText = "Message is empty."
+                            showError = true
+                        } else {
+                            viewModel.sendMessage(toChat: chatId)
+                        }
+                    } label: {
                         Image(systemName: "paperplane.fill")
                             .foregroundColor(.white)
                             .padding(10)
@@ -149,9 +132,16 @@ struct ChatView: View {
         }
         .sheet(isPresented: $showingImagePicker) {
             ImagePicker(selectedImage: $selectedImage) { image in
-                viewModel.sendImage(image, to: chatId)
-                selectedImage = nil
+                if let image = selectedImage {
+                    viewModel.sendImage(image, to: chatId)
+                    selectedImage = nil
+                }
             }
+        }
+        .alert("Error", isPresented: $showError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorText)
         }
         .navigationTitle(user.name)
         .navigationBarTitleDisplayMode(.inline)
@@ -160,3 +150,4 @@ struct ChatView: View {
         }
     }
 }
+
