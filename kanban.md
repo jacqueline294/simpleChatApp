@@ -4,6 +4,11 @@ Task	User Story
 🧩 Design Registration View	As a user, I want to register easily so that I can start using the app.
 🖼️ Implement image upload	As a user, I want to send an image so that I can share visuals with my contacts.
 🌙 Add dark mode toggle	As a user, I want a dark mode option so I can reduce eye strain.
+🔔 Implement Push Notifications	As a user, I want to receive push notifications for new messages so I am alerted even when not actively using the app.
+😀 Implement Emojis & Stickers	As a user, I want to use emojis and stickers so I can express myself better in chats.
+📄 Enhance File Sharing for PDF/Word	As a user, I want to share PDF and Word documents so I can exchange files easily.
+📹 Implement Video Calling	As a user, I want to make video calls so I can have face-to-face conversations.
+📍 Implement GPS Contact Finder	As a user, I want to see my contacts' locations on a map (with their permission) so I can know who is nearby.
 
 🟨 In Progress
 Task	User Story
