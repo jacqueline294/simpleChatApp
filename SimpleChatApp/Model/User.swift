@@ -15,6 +15,7 @@ struct User: Identifiable, Decodable,Hashable, Equatable {
     let name: String
     let email: String
     let profileImageURL: String?
+    var fcmToken: String? = nil
 }
 
 

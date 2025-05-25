@@ -17,7 +17,7 @@ struct MessageRow: View {
 
             VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 8) {
                 // Display image if present
-                if let urlStr = message.imageUrl, let url = URL(string: urlStr) {
+                if message.isImage, let urlStr = message.imageUrl, let url = URL(string: urlStr) {
                     AsyncImage(url: url) { phase in
                         switch phase {
                         case .empty:
@@ -30,7 +30,7 @@ struct MessageRow: View {
                                 .frame(maxWidth: 200)
                                 .cornerRadius(12)
                         case .failure:
-                            Image(systemName: "photo")
+                            Image(systemName: "photo") // Standard icon for failed image load
                                 .resizable()
                                 .scaledToFit()
                                 .frame(width: 200, height: 150)
@@ -41,7 +41,9 @@ struct MessageRow: View {
                     }
                 }
 
-                // Display text if not empty
+                // Display text if not empty.
+                // This applies to text-only messages, or text accompanying an image.
+                // It will not render if text is empty (e.g. image-only message).
                 if !message.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Text(message.text)
                         .padding(10)
