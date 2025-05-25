@@ -17,6 +17,11 @@ struct ChatView: View {
     @State private var selectedImage: UIImage?
     @State private var errorText: String = ""
     @State private var showError: Bool = false
+    // Removed @State private var showStickerPanel: Bool = false
+    @State private var showDocumentPicker: Bool = false // State for document picker
+    @State private var selectedFileUrl: URL? = nil // Holds the URL of the selected file
+
+    // Removed stickerIdentifiers array
 
     init(user: User, chatId: String) {
         self.user = user
@@ -43,63 +48,39 @@ struct ChatView: View {
                     ScrollView {
                         LazyVStack(spacing: 10) {
                             ForEach(viewModel.messages) { message in
-                                HStack(alignment: .bottom) {
-                                    if message.senderId == Auth.auth().currentUser?.uid {
-                                        Spacer()
-                                    }
-
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        // 🖼 Image if any
-                                        if let imageUrl = message.imageUrl,
-                                           let url = URL(string: imageUrl) {
-                                            AsyncImage(url: url) { phase in
-                                                switch phase {
-                                                case .empty:
-                                                    ProgressView()
-                                                case .success(let image):
-                                                    image
-                                                        .resizable()
-                                                        .scaledToFit()
-                                                        .frame(maxWidth: 200)
-                                                        .cornerRadius(10)
-                                                case .failure:
-                                                    Image(systemName: "photo")
-                                                        .resizable()
-                                                        .scaledToFit()
-                                                        .frame(width: 200, height: 150)
-                                                @unknown default:
-                                                    EmptyView()
-                                                }
-                                            }
-                                        }
-
-                                        if !message.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                            Text(message.text)
-                                                .padding(10)
-                                                .background(message.senderId == Auth.auth().currentUser?.uid ? Color.blue : Color.gray.opacity(0.2))
-                                                .foregroundColor(message.senderId == Auth.auth().currentUser?.uid ? .white : .black)
-                                                .cornerRadius(12)
-                                        }
-                                    }
-
-                                    if message.senderId != Auth.auth().currentUser?.uid {
-                                        Spacer()
-                                    }
-                                }
-                                .padding(.horizontal)
+                                // Use MessageRow for displaying each message
+                                MessageRow(message: message, isCurrentUser: message.senderId == Auth.auth().currentUser?.uid)
+                                    .padding(.horizontal)
                             }
                         }
                         .padding(.top)
                     }
                 }
 
+                // Removed Sticker Panel
+
                 // 🧾 Input
                 HStack(spacing: 12) {
                     // 📷 Image button
                     Button {
                         showingImagePicker = true
+                        // Removed showStickerPanel = false
+                        showDocumentPicker = false
                     } label: {
                         Image(systemName: "photo")
+                            .foregroundColor(.blue)
+                            .imageScale(.large)
+                    }
+                    
+                    // Removed Sticker Button
+                    
+                    // 📎 Document Picker Button
+                    Button {
+                        showDocumentPicker = true
+                        showingImagePicker = false // Ensure other panels are hidden
+                        // Removed showStickerPanel = false
+                    } label: {
+                        Image(systemName: "paperclip")
                             .foregroundColor(.blue)
                             .imageScale(.large)
                     }
@@ -114,6 +95,8 @@ struct ChatView: View {
                     // 🚀 Send
                     Button {
                         if viewModel.newMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            // Optionally allow sending empty message if sticker panel is not the primary input
+                            // For now, requires text if not sending sticker/image
                             errorText = "Message is empty."
                             showError = true
                         } else {
@@ -131,11 +114,23 @@ struct ChatView: View {
             }
         }
         .sheet(isPresented: $showingImagePicker) {
-            ImagePicker(selectedImage: $selectedImage) { image in
-                if let image = selectedImage {
+            ImagePicker(selectedImage: $selectedImage) { _ in // Image is handled by the picker itself now
+                if let image = self.selectedImage { // Use self.selectedImage
                     viewModel.sendImage(image, to: chatId)
-                    selectedImage = nil
+                    self.selectedImage = nil // Reset after sending
                 }
+            }
+        }
+        .sheet(isPresented: $showDocumentPicker) {
+            DocumentPicker(selectedURL: $selectedFileUrl, isPresented: $showDocumentPicker)
+        }
+        .onChange(of: selectedFileUrl) { newUrl in
+            if let url = newUrl {
+                // Ensure originalFileName is correctly extracted.
+                // For files from DocumentPicker with asCopy=true, url.lastPathComponent should be the actual name.
+                let originalFileName = url.lastPathComponent
+                viewModel.sendFile(fileURL: url, originalFileName: originalFileName, toChat: chatId)
+                selectedFileUrl = nil // Reset after processing
             }
         }
         .alert("Error", isPresented: $showError) {

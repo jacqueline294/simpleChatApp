@@ -145,8 +145,30 @@ class AuthViewModel: ObservableObject {
             }
             
             let profileImageURL = data["profileImageURL"] as? String
-            self.user = User(id: userId, name: name, email: email, profileImageURL: profileImageURL)
+            let fcmToken = data["fcmToken"] as? String // Fetch fcmToken
+            self.user = User(id: userId, name: name, email: email, profileImageURL: profileImageURL, fcmToken: fcmToken) // Initialize with fcmToken
             completion(true, nil)
+        }
+    }
+    
+    //  Update FCM Token
+    public func updateUserFCMToken(token: String) {
+        guard let userId = Auth.auth().currentUser?.uid else {
+            self.errorMessage = "User not logged in. Cannot update FCM token."
+            return
+        }
+        
+        let userRef = db.collection("users").document(userId)
+        userRef.updateData(["fcmToken": token]) { [weak self] error in
+            guard let self = self else { return }
+            if let error = error {
+                self.errorMessage = "Failed to update FCM token: \(error.localizedDescription)"
+            } else {
+                // Optionally, update the local user object if needed
+                if self.user?.id == userId {
+                    self.user?.fcmToken = token
+                }
+            }
         }
     }
     
